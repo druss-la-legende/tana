@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tana - File Organizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        // Apply theme before render to avoid flash
+        const saved = localStorage.getItem("theme");
+        if (saved === "light") document.documentElement.setAttribute("data-theme", "light");
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Tana</h1>
+        <p class="subtitle">Organise tes CBR / CBZ / PDF</p>
+        <nav class="header-nav">
+            <button class="nav-tab active" data-view="files" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                Fichiers
+            </button>
+            <button class="nav-tab" data-view="config" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Configuration
+            </button>
+        </nav>
+        <button id="btn-theme" class="theme-toggle" type="button" aria-label="Toggle theme">
+            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+    </header>
+
+    <main>
+        <!-- FILES VIEW -->
+        <section id="view-files">
+            <section class="file-list-section">
+                <div class="file-list-header">
+                    <div class="select-all-wrap">
+                        <input type="checkbox" id="select-all">
+                        <label for="select-all">Tout sélectionner</label>
+                    </div>
+                    <div class="filter-wrap">
+                        <select id="filter-match" class="filter-select">
+                            <option value="all">Tous</option>
+                            <option value="matched">Matchés</option>
+                            <option value="suggested">Suggestions</option>
+                            <option value="unmatched">Sans match</option>
+                        </select>
+                    </div>
+                    <button id="btn-organize-matched" type="button" class="btn-batch" style="display:none">Organiser tous les matchés</button>
+                    <span class="file-count" id="file-count"></span>
+                </div>
+                <div class="file-table-wrap">
+                    <table id="file-table">
+                        <thead>
+                            <tr>
+                                <th class="col-check"></th>
+                                <th class="col-name sortable" data-sort="name">Fichier</th>
+                                <th class="col-series sortable" data-sort="series">Série détectée</th>
+                                <th class="col-search-ext"></th>
+                                <th class="col-match">Série existante</th>
+                                <th class="col-tome sortable" data-sort="tome">Tome</th>
+                                <th class="col-size sortable" data-sort="size">Taille</th>
+                                <th class="col-actions"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="file-tbody">
+                            <tr class="empty-row">
+                                <td colspan="8">Chargement...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="action-panel">
+                <h2>Organiser</h2>
+                <div class="action-fields">
+                    <div class="field">
+                        <label for="series-name">Nom de la série</label>
+                        <div class="action-search-wrap">
+                            <input type="text" id="series-name" placeholder="Ex: One Piece" autocomplete="off">
+                            <div class="action-dropdown" id="action-dropdown"></div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="destination">Destination</label>
+                        <select id="destination">
+                            <option value="">-- Choisir --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="preview-section" id="preview-section" style="display:none;">
+                    <h3>Aperçu</h3>
+                    <ul id="preview-list"></ul>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="btn-organize" type="button" disabled>Organiser les fichiers</button>
+                </div>
+            </section>
+        </section>
+
+        <!-- CONFIG VIEW -->
+        <section id="view-config" style="display:none">
+            <div class="config-panel">
+                <h2>Configuration</h2>
+
+                <div class="config-section">
+                    <label class="config-label">Dossier source</label>
+                    <p class="config-hint">Dossier scanné au démarrage pour trouver les fichiers à organiser.</p>
+                    <div class="config-input-row">
+                        <input type="text" id="config-source" placeholder="/chemin/vers/dossier" class="config-input">
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <label class="config-label">Dossiers de destination</label>
+                    <p class="config-hint">Dossiers dans lesquels les séries sont organisées. Ils sont scannés pour détecter les séries existantes.</p>
+                    <ul id="config-dest-list" class="config-dest-list"></ul>
+                    <div class="config-input-row">
+                        <input type="text" id="config-new-dest" placeholder="/chemin/vers/nouveau/dossier" class="config-input">
+                        <button id="btn-add-dest" type="button" class="btn-config-add">Ajouter</button>
+                    </div>
+                </div>
+
+                <div class="config-actions">
+                    <button id="btn-save-config" type="button">Sauvegarder</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="toast-container" id="toast-container"></div>
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
