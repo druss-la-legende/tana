@@ -14,13 +14,17 @@ Outil web pour organiser automatiquement une collection de manga et BD (CBR, CBZ
 
 ## Fonctionnalités
 
-- **Détection automatique** du nom de série et du numéro de tome depuis le nom de fichier
+- **Détection automatique** du nom de série et du numéro de tome (supporte `Tome 12`, `T12`, `Vol.12`, `v12`, `#12`)
+- **Nettoyage intelligent** des noms de fichiers (préfixes BD.FR, métadonnées entre crochets, marqueurs scene…)
 - **Matching intelligent** avec les séries existantes (normalisation accents/articles, scoring multi-critères)
 - **Organisation batch** : un clic pour ranger tous les fichiers auto-matchés
+- **Organisation rapide** fichier par fichier via le bouton "Ajouter à"
 - **Groupement visuel** par série détectée avec sélection de groupe
 - **Tri et filtres** par nom, taille, tome, statut de match
 - **Recherche** dans les séries existantes avec autocomplétion et navigation clavier
 - **Renommage standardisé** : `Nom Série - T01.cbr`
+- **Suppression avec corbeille** : les fichiers supprimés vont dans `.trash/` avec possibilité d'annuler
+- **Scan récursif** du dossier source (sous-dossiers inclus)
 - **Liens externes** vers Nautiljon et Manga-News pour vérification
 - **Thème** dark / light
 - **Page de configuration** pour gérer le dossier source et les destinations depuis l'interface
