@@ -4,6 +4,14 @@
 
 Outil web pour organiser automatiquement une collection de manga et BD (CBR, CBZ, PDF) depuis un dossier d'import vers des destinations catégorisées.
 
+## Aperçu
+
+![Vue principale - Liste des fichiers avec détection automatique des séries et matching](9H6M59DpPH.png)
+*Vue principale : les fichiers sont analysés automatiquement. Tana détecte le nom de série, propose un matching avec les séries existantes, et permet de rechercher manuellement une correspondance.*
+
+![Panneau d'organisation - Groupement par série et aperçu du renommage](YPRM8emGso.png)
+*Organisation : les fichiers sont groupés par série détectée. Le panneau du bas permet de choisir le nom de série, la destination, et affiche un aperçu du renommage avant validation.*
+
 ## Fonctionnalités
 
 - **Détection automatique** du nom de série et du numéro de tome depuis le nom de fichier
