@@ -1228,6 +1228,131 @@ td.col-search-ext {
     }
 }
 
+/* --- HISTORY VIEW --- */
+.history-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elevated);
+}
+
+.history-header h2 {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-high);
+    letter-spacing: -0.01em;
+    margin: 0;
+}
+
+.history-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.history-table-wrap {
+    max-height: calc(100vh - 280px);
+    min-height: 200px;
+    overflow-y: auto;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.history-table thead th {
+    background: var(--bg-elevated);
+    padding: 0.6rem 1.25rem;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-bright);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.history-row {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+}
+
+.history-row:hover { background: var(--bg-elevated); }
+
+.history-row td {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.85rem;
+    color: var(--text);
+}
+
+.col-history-time {
+    width: 150px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.col-history-action { width: 160px; }
+
+.history-action-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.history-action-organize,
+.history-action-organize_batch {
+    background: rgba(52, 211, 153, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(52, 211, 153, 0.25);
+}
+
+.history-action-delete {
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--error);
+    border: 1px solid rgba(248, 113, 113, 0.25);
+}
+
+.history-action-undelete {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.history-action-fix_naming {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.col-history-detail {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    word-break: break-all;
+}
+
+.col-history-series {
+    width: 180px;
+    font-weight: 600;
+}
+
 /* --- AUDIT VIEW --- */
 .audit-panel {
     background: var(--bg-surface);

@@ -22,6 +22,9 @@ DEFAULT_CONFIG = {
 
 EXTENSIONS = {".cbr", ".cbz", ".pdf"}
 
+HISTORY_PATH = Path(__file__).parent / "history.json"
+HISTORY_MAX_ENTRIES = 500
+
 
 def load_config() -> dict:
     """Load configuration from config.json, creating it with defaults if missing."""
@@ -171,6 +174,32 @@ def invalidate_series_cache():
     _series_cache = None
     _norm_cache = {}
     _series_cache_time = 0
+
+
+def _load_history() -> list:
+    if HISTORY_PATH.is_file():
+        try:
+            with open(HISTORY_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return []
+    return []
+
+
+def _save_history(history: list) -> None:
+    with open(HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+
+def log_action(action: str, details: dict) -> None:
+    """Log an action to history.json."""
+    history = _load_history()
+    entry = {"timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"), "action": action, **details}
+    history.insert(0, entry)
+    if len(history) > HISTORY_MAX_ENTRIES:
+        history = history[:HISTORY_MAX_ENTRIES]
+    _save_history(history)
 
 
 def search_series(query: str, existing: dict[str, list[dict]], limit: int = 10) -> list[dict]:
@@ -506,11 +535,21 @@ def api_fix_naming():
         try:
             current_path.rename(expected_path)
             results.append({"current": current, "expected": expected, "success": True})
+            log_action("fix_naming", {"series": series_name, "current": current, "expected": expected})
         except Exception as e:
             results.append({"current": current, "error": str(e)})
 
     invalidate_series_cache()
     return jsonify({"results": results})
+
+
+@app.route("/api/history")
+def api_history():
+    history = _load_history()
+    action_filter = request.args.get("action", "")
+    if action_filter:
+        history = [h for h in history if h["action"] == action_filter]
+    return jsonify({"history": history, "total": len(history)})
 
 
 @app.route("/api/template-preview", methods=["POST"])
@@ -581,6 +620,7 @@ def api_organize_matched():
             "new_name": new_name,
             "success": True,
         })
+        log_action("organize_batch", {"source": source_name, "destination": str(dest_path), "new_name": new_name, "series": series_name})
 
     invalidate_series_cache()
     return jsonify({"results": results})
@@ -657,6 +697,7 @@ def api_organize():
             "new_name": new_name,
             "success": True,
         })
+        log_action("organize", {"source": source_name, "destination": str(dest_path), "new_name": new_name, "series": series_name})
 
     invalidate_series_cache()
     return jsonify({"results": results, "series_dir": str(series_dir)})
@@ -683,6 +724,7 @@ def api_delete():
     if trash_path.exists():
         trash_path.unlink()
     shutil.move(str(file_path), str(trash_path))
+    log_action("delete", {"filename": filename, "source_dir": source_dir})
     return jsonify({"success": True, "filename": filename})
 
 
@@ -704,6 +746,7 @@ def api_undelete():
 
     restore_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(trash_path), str(restore_path))
+    log_action("undelete", {"filename": filename, "source_dir": source_dir})
     return jsonify({"success": True, "filename": filename})
 
 

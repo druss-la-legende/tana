@@ -40,6 +40,11 @@ const templatePreview = document.getElementById("template-preview");
 // ─── DOM REFS (navigation) ─────────────────────────────
 const navTabs = document.querySelectorAll(".nav-tab");
 
+// ─── DOM REFS (history view) ──────────────────────────
+const historyTbody = document.getElementById("history-tbody");
+const historyFilterSelect = document.getElementById("history-filter-action");
+const btnRefreshHistory = document.getElementById("btn-refresh-history");
+
 // ─── DOM REFS (audit view) ────────────────────────────
 const auditTbody = document.getElementById("audit-tbody");
 const auditSummary = document.getElementById("audit-summary");
@@ -56,6 +61,8 @@ let filterMatch = "all"; // "all", "matched", "suggested", "unmatched"
 let auditData = null;
 let auditFilter = "all";
 let auditSearch = "";
+let historyData = [];
+let historyFilterAction = "";
 
 // ─── NAVIGATION ────────────────────────────────────────
 navTabs.forEach((tab) => {
@@ -70,6 +77,7 @@ navTabs.forEach((tab) => {
 
         if (view === "config") loadConfigUI();
         if (view === "audit" && !auditData) runAudit();
+        if (view === "history") loadHistory();
     });
 });
 
@@ -1056,6 +1064,62 @@ filterSelect.addEventListener("change", () => {
     filterMatch = filterSelect.value;
     renderFiles();
 });
+
+// ─── HISTORY ────────────────────────────────────────────
+async function loadHistory() {
+    try {
+        let url = "/api/history";
+        if (historyFilterAction) url += `?action=${encodeURIComponent(historyFilterAction)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        historyData = data.history;
+        renderHistory();
+    } catch {
+        showToast("Erreur lors du chargement de l'historique", "error");
+    }
+}
+
+function renderHistory() {
+    if (historyData.length === 0) {
+        historyTbody.innerHTML = `<tr class="empty-row"><td colspan="4">Aucune action enregistrée</td></tr>`;
+        return;
+    }
+
+    const actionLabels = {
+        organize: "Organiser",
+        organize_batch: "Organiser (batch)",
+        delete: "Supprimer",
+        undelete: "Restaurer",
+        fix_naming: "Correction nommage",
+    };
+
+    historyTbody.innerHTML = historyData.map((h) => {
+        const label = actionLabels[h.action] || h.action;
+        const ts = h.timestamp.replace("T", " ");
+        let detail = "";
+        if (h.action === "organize" || h.action === "organize_batch") {
+            detail = `${escHtml(h.source || "")} &rarr; ${escHtml(h.new_name || "")}`;
+        } else if (h.action === "delete" || h.action === "undelete") {
+            detail = escHtml(h.filename || "");
+        } else if (h.action === "fix_naming") {
+            detail = `${escHtml(h.current || "")} &rarr; ${escHtml(h.expected || "")}`;
+        }
+
+        return `<tr class="history-row">
+            <td class="col-history-time">${escHtml(ts)}</td>
+            <td class="col-history-action"><span class="history-action-badge history-action-${h.action}">${escHtml(label)}</span></td>
+            <td class="col-history-detail">${detail}</td>
+            <td class="col-history-series">${escHtml(h.series || "")}</td>
+        </tr>`;
+    }).join("");
+}
+
+historyFilterSelect.addEventListener("change", () => {
+    historyFilterAction = historyFilterSelect.value;
+    loadHistory();
+});
+
+btnRefreshHistory.addEventListener("click", loadHistory);
 
 // ─── AUDIT ──────────────────────────────────────────────
 async function runAudit() {
