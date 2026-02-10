@@ -24,6 +24,7 @@ const previewSection = document.getElementById("preview-section");
 const previewList = document.getElementById("preview-list");
 const btnOrganize = document.getElementById("btn-organize");
 const btnOrganizeMatched = document.getElementById("btn-organize-matched");
+const btnRefreshFiles = document.getElementById("btn-refresh-files");
 const filterSelect = document.getElementById("filter-match");
 const toastContainer = document.getElementById("toast-container");
 
@@ -1059,6 +1060,9 @@ function showToast(message, type = "success") {
         toast.addEventListener("animationend", () => toast.remove());
     }, 3700);
 }
+
+// Refresh files
+btnRefreshFiles.addEventListener("click", () => scanFiles());
 
 // Batch organize all auto-matched files
 btnOrganizeMatched.addEventListener("click", async () => {
