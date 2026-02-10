@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import time
+from collections import Counter
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
@@ -367,6 +368,148 @@ def api_search_series():
     q = request.args.get("q", "")
     existing = get_existing_series()
     results = search_series(q, existing)
+    return jsonify({"results": results})
+
+
+def _audit_series(series_name: str, dest: str, dest_label: str, files: list[dict], template: str) -> dict:
+    """Audit a single series folder."""
+    tomes = [f["tome"] for f in files if f["tome"] is not None]
+    extensions = list(set(f["extension"] for f in files))
+
+    # Missing tomes detection
+    missing_tomes = []
+    if len(tomes) >= 2:
+        tomes_sorted = sorted(set(tomes))
+        for i in range(tomes_sorted[0], tomes_sorted[-1] + 1):
+            if i not in tomes_sorted:
+                missing_tomes.append(i)
+
+    # Duplicate tomes
+    tome_counts = Counter(tomes)
+    duplicate_tomes = [{"tome": t, "count": c} for t, c in tome_counts.items() if c > 1]
+
+    # Naming issues
+    naming_issues = []
+    for f in files:
+        expected = apply_template(template, series_name, f["tome"], f["extension"])
+        if f["name"] != expected:
+            naming_issues.append({
+                "current": f["name"],
+                "expected": expected,
+                "tome": f["tome"],
+            })
+
+    mixed_extensions = len(extensions) > 1
+
+    return {
+        "series_name": series_name,
+        "destination": dest,
+        "dest_label": dest_label,
+        "file_count": len(files),
+        "files": files,
+        "tomes": sorted(set(tomes)),
+        "missing_tomes": missing_tomes,
+        "duplicate_tomes": duplicate_tomes,
+        "naming_issues": naming_issues,
+        "mixed_extensions": mixed_extensions,
+        "extensions": extensions,
+        "is_empty": len(files) == 0,
+        "has_issues": bool(
+            missing_tomes or duplicate_tomes or naming_issues
+            or mixed_extensions or len(files) == 0 or len(files) == 1
+        ),
+    }
+
+
+def audit_collections() -> dict:
+    """Scan all destination folders and return quality audit results."""
+    cfg = load_config()
+    template = cfg.get("template", DEFAULT_TEMPLATE)
+
+    results: dict = {"series": [], "summary": {}}
+
+    for dest in cfg["destinations"]:
+        dest_path = Path(dest)
+        if not dest_path.is_dir():
+            continue
+        dest_label = dest_path.name
+
+        for series_dir in sorted(dest_path.iterdir()):
+            if not series_dir.is_dir() or series_dir.name.startswith((".", "@")):
+                continue
+
+            files = []
+            for f in sorted(series_dir.iterdir()):
+                if f.is_file() and f.suffix.lower() in EXTENSIONS:
+                    tome = detect_tome(f.name)
+                    size = f.stat().st_size
+                    files.append({
+                        "name": f.name,
+                        "tome": tome,
+                        "extension": f.suffix.lower(),
+                        "size": size,
+                        "size_human": format_size(size),
+                    })
+
+            entry = _audit_series(series_dir.name, dest, dest_label, files, template)
+            results["series"].append(entry)
+
+    s = results["series"]
+    results["summary"] = {
+        "total_series": len(s),
+        "series_with_gaps": sum(1 for x in s if x["missing_tomes"]),
+        "series_with_naming_issues": sum(1 for x in s if x["naming_issues"]),
+        "empty_folders": sum(1 for x in s if x["is_empty"]),
+        "single_file_series": sum(1 for x in s if x["file_count"] == 1),
+        "duplicate_tomes": sum(1 for x in s if x["duplicate_tomes"]),
+    }
+    return results
+
+
+@app.route("/api/audit")
+def api_audit():
+    results = audit_collections()
+    return jsonify(results)
+
+
+@app.route("/api/audit/fix-naming", methods=["POST"])
+def api_fix_naming():
+    data = request.get_json()
+    cfg = load_config()
+    fixes = data.get("fixes", [])
+
+    if not fixes:
+        return jsonify({"error": "Aucun fichier à corriger"}), 400
+
+    results = []
+    for fix in fixes:
+        dest = fix.get("destination", "")
+        series_name = fix.get("series_name", "")
+        current = fix.get("current", "")
+        expected = fix.get("expected", "")
+
+        if dest not in cfg["destinations"]:
+            results.append({"current": current, "error": "Destination non autorisée"})
+            continue
+
+        series_dir = Path(dest) / series_name
+        current_path = series_dir / current
+        expected_path = series_dir / expected
+
+        if not current_path.is_file():
+            results.append({"current": current, "error": "Fichier introuvable"})
+            continue
+        if expected_path.exists() and expected_path != current_path:
+            results.append({"current": current, "error": f"{expected} existe déjà"})
+            continue
+
+        try:
+            current_path.rename(expected_path)
+            results.append({"current": current, "expected": expected, "success": True})
+        except Exception as e:
+            results.append({"current": current, "error": str(e)})
+
+    invalidate_series_cache()
     return jsonify({"results": results})
 
 

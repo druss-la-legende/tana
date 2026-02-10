@@ -38,14 +38,24 @@ const configTemplateNoTome = document.getElementById("config-template-no-tome");
 const templatePreview = document.getElementById("template-preview");
 
 // ─── DOM REFS (navigation) ─────────────────────────────
-const viewFiles = document.getElementById("view-files");
-const viewConfig = document.getElementById("view-config");
 const navTabs = document.querySelectorAll(".nav-tab");
+
+// ─── DOM REFS (audit view) ────────────────────────────
+const auditTbody = document.getElementById("audit-tbody");
+const auditSummary = document.getElementById("audit-summary");
+const auditControls = document.getElementById("audit-controls");
+const auditFilterSelect = document.getElementById("audit-filter");
+const auditSearchInput = document.getElementById("audit-search");
+const btnRunAudit = document.getElementById("btn-run-audit");
 
 let filesData = [];
 let sortField = null;  // "name", "series", "tome", "size"
 let sortDir = "asc";   // "asc" or "desc"
 let filterMatch = "all"; // "all", "matched", "suggested", "unmatched"
+
+let auditData = null;
+let auditFilter = "all";
+let auditSearch = "";
 
 // ─── NAVIGATION ────────────────────────────────────────
 navTabs.forEach((tab) => {
@@ -54,12 +64,12 @@ navTabs.forEach((tab) => {
         navTabs.forEach((t) => t.classList.remove("active"));
         tab.classList.add("active");
 
-        viewFiles.style.display = view === "files" ? "" : "none";
-        viewConfig.style.display = view === "config" ? "" : "none";
+        document.querySelectorAll("main > section[id^='view-']").forEach((s) => {
+            s.style.display = s.id === `view-${view}` ? "" : "none";
+        });
 
-        if (view === "config") {
-            loadConfigUI();
-        }
+        if (view === "config") loadConfigUI();
+        if (view === "audit" && !auditData) runAudit();
     });
 });
 
@@ -1046,6 +1056,196 @@ filterSelect.addEventListener("change", () => {
     filterMatch = filterSelect.value;
     renderFiles();
 });
+
+// ─── AUDIT ──────────────────────────────────────────────
+async function runAudit() {
+    btnRunAudit.disabled = true;
+    btnRunAudit.textContent = "Analyse en cours...";
+    try {
+        const res = await fetch("/api/audit");
+        auditData = await res.json();
+        auditControls.style.display = "flex";
+        renderAuditSummary();
+        renderAuditTable();
+    } catch {
+        showToast("Erreur lors de l'audit", "error");
+    } finally {
+        btnRunAudit.disabled = false;
+        btnRunAudit.textContent = "Relancer l'audit";
+    }
+}
+
+function renderAuditSummary() {
+    const s = auditData.summary;
+    auditSummary.innerHTML = `
+        <div class="audit-stat"><span class="audit-stat-value">${s.total_series}</span><span class="audit-stat-label">Séries</span></div>
+        <div class="audit-stat${s.series_with_gaps > 0 ? " audit-stat-warning" : ""}"><span class="audit-stat-value">${s.series_with_gaps}</span><span class="audit-stat-label">Tomes manquants</span></div>
+        <div class="audit-stat${s.series_with_naming_issues > 0 ? " audit-stat-warning" : ""}"><span class="audit-stat-value">${s.series_with_naming_issues}</span><span class="audit-stat-label">Nommage incorrect</span></div>
+        <div class="audit-stat"><span class="audit-stat-value">${s.empty_folders}</span><span class="audit-stat-label">Dossiers vides</span></div>
+        <div class="audit-stat"><span class="audit-stat-value">${s.single_file_series}</span><span class="audit-stat-label">Fichier unique</span></div>
+        <div class="audit-stat${s.duplicate_tomes > 0 ? " audit-stat-warning" : ""}"><span class="audit-stat-value">${s.duplicate_tomes}</span><span class="audit-stat-label">Tomes dupliqués</span></div>
+    `;
+}
+
+function getFilteredAuditSeries() {
+    let series = auditData.series;
+
+    if (auditSearch) {
+        const q = auditSearch.toLowerCase();
+        series = series.filter((s) => s.series_name.toLowerCase().includes(q));
+    }
+
+    if (auditFilter === "gaps") series = series.filter((s) => s.missing_tomes.length > 0);
+    else if (auditFilter === "naming") series = series.filter((s) => s.naming_issues.length > 0);
+    else if (auditFilter === "empty") series = series.filter((s) => s.is_empty);
+    else if (auditFilter === "single") series = series.filter((s) => s.file_count === 1);
+    else if (auditFilter === "duplicates") series = series.filter((s) => s.duplicate_tomes.length > 0);
+    else if (auditFilter === "issues") series = series.filter((s) => s.has_issues);
+
+    return series;
+}
+
+function renderAuditTable() {
+    const series = getFilteredAuditSeries();
+
+    if (series.length === 0) {
+        auditTbody.innerHTML = `<tr class="empty-row"><td colspan="6">Aucune série trouvée</td></tr>`;
+        return;
+    }
+
+    let html = "";
+    series.forEach((s, i) => {
+        const issues = [];
+        if (s.missing_tomes.length) issues.push(`<span class="audit-badge audit-badge-gap">${s.missing_tomes.length} manquant${s.missing_tomes.length > 1 ? "s" : ""}</span>`);
+        if (s.naming_issues.length) issues.push(`<span class="audit-badge audit-badge-naming">${s.naming_issues.length} nommage</span>`);
+        if (s.duplicate_tomes.length) issues.push(`<span class="audit-badge audit-badge-dup">${s.duplicate_tomes.length} doublon${s.duplicate_tomes.length > 1 ? "s" : ""}</span>`);
+        if (s.mixed_extensions) issues.push(`<span class="audit-badge audit-badge-ext">${s.extensions.join(", ")}</span>`);
+        if (s.is_empty) issues.push(`<span class="audit-badge audit-badge-empty">Vide</span>`);
+        if (!s.is_empty && s.file_count === 1) issues.push(`<span class="audit-badge audit-badge-single">1 fichier</span>`);
+
+        const missingDisplay = s.missing_tomes.length > 0
+            ? `T${s.missing_tomes.map((t) => String(t).padStart(2, "0")).join(", T")}`
+            : "";
+
+        html += `<tr class="audit-row${s.has_issues ? " audit-has-issues" : ""}" data-audit-index="${i}">
+            <td class="col-audit-expand"><button class="btn-audit-expand" data-audit-index="${i}" type="button">&#9654;</button></td>
+            <td class="col-audit-series">${escHtml(s.series_name)}</td>
+            <td class="col-audit-dest"><span class="audit-dest-label">${escHtml(s.dest_label)}</span></td>
+            <td class="col-audit-count">${s.file_count}</td>
+            <td class="col-audit-missing">${missingDisplay}</td>
+            <td class="col-audit-issues">${issues.join(" ")}</td>
+        </tr>
+        <tr class="audit-detail" id="audit-detail-${i}" style="display:none">
+            <td colspan="6">
+                <div class="audit-detail-content" id="audit-detail-content-${i}"></div>
+            </td>
+        </tr>`;
+    });
+
+    auditTbody.innerHTML = html;
+}
+
+function renderAuditDetail(index) {
+    const s = getFilteredAuditSeries()[index];
+    const container = document.getElementById(`audit-detail-content-${index}`);
+
+    let html = "";
+
+    if (s.naming_issues.length > 0) {
+        html += `<div class="audit-detail-section">
+            <h4>Nommage incorrect</h4>
+            <button class="btn-fix-all-naming" data-dest="${escHtml(s.destination)}" data-series="${escHtml(s.series_name)}" type="button">Corriger tout</button>
+            <ul class="audit-naming-list">`;
+        s.naming_issues.forEach((issue) => {
+            html += `<li>
+                <span class="preview-old">${escHtml(issue.current)}</span>
+                <span class="preview-arrow">&rarr;</span>
+                <span class="preview-new">${escHtml(issue.expected)}</span>
+            </li>`;
+        });
+        html += `</ul></div>`;
+    }
+
+    if (s.missing_tomes.length > 0) {
+        html += `<div class="audit-detail-section"><h4>Tomes manquants</h4><p class="audit-missing-list">`;
+        html += s.missing_tomes.map((t) => `<span class="audit-missing-tome">T${String(t).padStart(2, "0")}</span>`).join(" ");
+        html += `</p></div>`;
+    }
+
+    if (s.duplicate_tomes.length > 0) {
+        html += `<div class="audit-detail-section"><h4>Tomes en double</h4><p>`;
+        html += s.duplicate_tomes.map((d) => `T${String(d.tome).padStart(2, "0")} (${d.count}x)`).join(", ");
+        html += `</p></div>`;
+    }
+
+    html += `<div class="audit-detail-section"><h4>Fichiers (${s.files.length})</h4><ul class="audit-file-list">`;
+    s.files.forEach((f) => {
+        html += `<li><span class="file-name">${escHtml(f.name)}</span> <span class="audit-file-size">${f.size_human}</span></li>`;
+    });
+    html += `</ul></div>`;
+
+    container.innerHTML = html;
+}
+
+// Audit event delegation
+auditTbody.addEventListener("click", (e) => {
+    const expandBtn = e.target.closest(".btn-audit-expand");
+    if (expandBtn) {
+        const idx = expandBtn.dataset.auditIndex;
+        const detail = document.getElementById(`audit-detail-${idx}`);
+        const isOpen = detail.style.display !== "none";
+        detail.style.display = isOpen ? "none" : "";
+        expandBtn.innerHTML = isOpen ? "&#9654;" : "&#9660;";
+        if (!isOpen) renderAuditDetail(parseInt(idx));
+        return;
+    }
+
+    const fixBtn = e.target.closest(".btn-fix-all-naming");
+    if (fixBtn) {
+        fixNaming(fixBtn.dataset.dest, fixBtn.dataset.series);
+        return;
+    }
+});
+
+async function fixNaming(dest, seriesName) {
+    const s = auditData.series.find((x) => x.destination === dest && x.series_name === seriesName);
+    if (!s || !s.naming_issues.length) return;
+
+    const fixes = s.naming_issues.map((issue) => ({
+        destination: dest,
+        series_name: seriesName,
+        current: issue.current,
+        expected: issue.expected,
+    }));
+
+    try {
+        const res = await fetch("/api/audit/fix-naming", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fixes }),
+        });
+        const data = await res.json();
+        const successes = data.results.filter((r) => r.success);
+        const errors = data.results.filter((r) => r.error);
+        if (successes.length > 0) showToast(`${successes.length} fichier${successes.length > 1 ? "s" : ""} renommé${successes.length > 1 ? "s" : ""}`, "success");
+        errors.forEach((err) => showToast(`${err.current}: ${err.error}`, "error"));
+        await runAudit();
+    } catch {
+        showToast("Erreur lors de la correction", "error");
+    }
+}
+
+auditFilterSelect.addEventListener("change", () => {
+    auditFilter = auditFilterSelect.value;
+    renderAuditTable();
+});
+
+auditSearchInput.addEventListener("input", () => {
+    auditSearch = auditSearchInput.value.trim();
+    renderAuditTable();
+});
+
+btnRunAudit.addEventListener("click", runAudit);
 
 // ─── INIT ──────────────────────────────────────────────
 async function init() {

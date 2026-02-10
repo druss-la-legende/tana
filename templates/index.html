@@ -20,6 +20,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
                 Fichiers
             </button>
+            <button class="nav-tab" data-view="audit" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Audit
+            </button>
             <button class="nav-tab" data-view="config" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 Configuration
@@ -145,6 +149,49 @@
 
                 <div class="config-actions">
                     <button id="btn-save-config" type="button">Sauvegarder</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- AUDIT VIEW -->
+        <section id="view-audit" style="display:none">
+            <div class="audit-panel">
+                <div class="audit-header">
+                    <h2>Audit de la collection</h2>
+                    <button id="btn-run-audit" type="button" class="btn-config-add">Lancer l'audit</button>
+                </div>
+
+                <div class="audit-summary" id="audit-summary"></div>
+
+                <div class="audit-controls" id="audit-controls" style="display:none">
+                    <input type="text" id="audit-search" placeholder="Rechercher une série..." class="audit-search-input">
+                    <select id="audit-filter" class="filter-select">
+                        <option value="all">Toutes les séries</option>
+                        <option value="issues">Avec problèmes</option>
+                        <option value="gaps">Tomes manquants</option>
+                        <option value="naming">Nommage incorrect</option>
+                        <option value="duplicates">Tomes dupliqués</option>
+                        <option value="empty">Dossiers vides</option>
+                        <option value="single">Fichier unique</option>
+                    </select>
+                </div>
+
+                <div class="audit-table-wrap">
+                    <table class="audit-table">
+                        <thead>
+                            <tr>
+                                <th class="col-audit-expand"></th>
+                                <th class="col-audit-series">Série</th>
+                                <th class="col-audit-dest">Destination</th>
+                                <th class="col-audit-count">Fichiers</th>
+                                <th class="col-audit-missing">Manquants</th>
+                                <th class="col-audit-issues">Problèmes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-tbody">
+                            <tr class="empty-row"><td colspan="6">Lancez un audit pour analyser votre collection</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </section>
