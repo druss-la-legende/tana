@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
     "destinations": [],
     "template": "{series} - T{tome:02d}{ext}",
     "template_no_tome": "{series}{ext}",
+    "template_rules": [],  # [{filter: "manga", template: "...", template_no_tome: "..."}]
 }
 
 EXTENSIONS = {".cbr", ".cbz", ".pdf"}
@@ -351,11 +352,32 @@ DEFAULT_TEMPLATE = "{series} - T{tome:02d}{ext}"
 DEFAULT_TEMPLATE_NO_TOME = "{series}{ext}"
 
 
-def apply_template(template: str, series: str, tome: int | None, ext: str) -> str:
+def get_template_for_dest(cfg: dict, destination: str) -> tuple[str, str]:
+    """Return (template, template_no_tome) for a given destination path.
+
+    Checks template_rules in order; first rule whose filter is found
+    (case-insensitive substring) in the destination path wins.
+    Falls back to the global template.
+    """
+    dest_lower = destination.lower()
+    for rule in cfg.get("template_rules", []):
+        filt = rule.get("filter", "").strip().lower()
+        if filt and filt in dest_lower:
+            return (
+                rule.get("template", cfg.get("template", DEFAULT_TEMPLATE)),
+                rule.get("template_no_tome", cfg.get("template_no_tome", DEFAULT_TEMPLATE_NO_TOME)),
+            )
+    return (
+        cfg.get("template", DEFAULT_TEMPLATE),
+        cfg.get("template_no_tome", DEFAULT_TEMPLATE_NO_TOME),
+    )
+
+
+def apply_template(template: str, series: str, tome: int | None, ext: str,
+                    template_no_tome: str = "") -> str:
     """Apply a naming template to produce the final filename."""
-    cfg = load_config()
     if tome is None:
-        tpl = cfg.get("template_no_tome", DEFAULT_TEMPLATE_NO_TOME)
+        tpl = template_no_tome or DEFAULT_TEMPLATE_NO_TOME
         result = tpl.replace("{series}", series)
         result = result.replace("{ext}", ext.lower())
         result = result.replace("{EXT}", ext.upper())
@@ -400,7 +422,8 @@ def api_search_series():
     return jsonify({"results": results})
 
 
-def _audit_series(series_name: str, dest: str, dest_label: str, files: list[dict], template: str) -> dict:
+def _audit_series(series_name: str, dest: str, dest_label: str, files: list[dict],
+                   template: str, template_no_tome: str) -> dict:
     """Audit a single series folder."""
     tomes = [f["tome"] for f in files if f["tome"] is not None]
     extensions = list(set(f["extension"] for f in files))
@@ -420,7 +443,7 @@ def _audit_series(series_name: str, dest: str, dest_label: str, files: list[dict
     # Naming issues
     naming_issues = []
     for f in files:
-        expected = apply_template(template, series_name, f["tome"], f["extension"])
+        expected = apply_template(template, series_name, f["tome"], f["extension"], template_no_tome)
         if f["name"] != expected:
             naming_issues.append({
                 "current": f["name"],
@@ -453,7 +476,6 @@ def _audit_series(series_name: str, dest: str, dest_label: str, files: list[dict
 def audit_collections() -> dict:
     """Scan all destination folders and return quality audit results."""
     cfg = load_config()
-    template = cfg.get("template", DEFAULT_TEMPLATE)
 
     results: dict = {"series": [], "summary": {}}
 
@@ -462,6 +484,7 @@ def audit_collections() -> dict:
         if not dest_path.is_dir():
             continue
         dest_label = dest_path.name
+        template, template_no_tome = get_template_for_dest(cfg, dest)
 
         for series_dir in sorted(dest_path.iterdir()):
             if not series_dir.is_dir() or series_dir.name.startswith((".", "@")):
@@ -480,7 +503,7 @@ def audit_collections() -> dict:
                         "size_human": format_size(size),
                     })
 
-            entry = _audit_series(series_dir.name, dest, dest_label, files, template)
+            entry = _audit_series(series_dir.name, dest, dest_label, files, template, template_no_tome)
             results["series"].append(entry)
 
     s = results["series"]
@@ -600,8 +623,8 @@ def api_organize_matched():
             continue
 
         ext = source_path.suffix.lower()
-        template = cfg.get("template", DEFAULT_TEMPLATE)
-        new_name = apply_template(template, series_name, int(tome) if tome is not None else None, ext)
+        tpl, tpl_no_tome = get_template_for_dest(cfg, destination)
+        new_name = apply_template(tpl, series_name, int(tome) if tome is not None else None, ext, tpl_no_tome)
 
         dest_path = series_dir / new_name
         if dest_path.exists():
@@ -675,8 +698,8 @@ def api_organize():
             continue
 
         ext = source_path.suffix.lower()
-        template = cfg.get("template", DEFAULT_TEMPLATE)
-        new_name = apply_template(template, series_name, int(tome) if tome is not None else None, ext)
+        tpl, tpl_no_tome = get_template_for_dest(cfg, destination)
+        new_name = apply_template(tpl, series_name, int(tome) if tome is not None else None, ext, tpl_no_tome)
 
         dest_path = series_dir / new_name
 
@@ -776,11 +799,25 @@ def api_save_config():
     if "{series}" not in template or "{ext}" not in template.lower():
         return jsonify({"error": "Le template doit contenir {series} et {ext}"}), 400
 
+    template_rules = data.get("template_rules", [])
+    # Validate rules
+    clean_rules = []
+    for rule in template_rules:
+        filt = rule.get("filter", "").strip()
+        rtpl = rule.get("template", "").strip()
+        rtpl_nt = rule.get("template_no_tome", "").strip()
+        if not filt or not rtpl:
+            continue
+        if "{series}" not in rtpl or "{ext}" not in rtpl.lower():
+            return jsonify({"error": f"Règle \"{filt}\" : le template doit contenir {{series}} et {{ext}}"}), 400
+        clean_rules.append({"filter": filt, "template": rtpl, "template_no_tome": rtpl_nt or template_no_tome})
+
     cfg = {
         "source_dir": source_dir,
         "destinations": destinations,
         "template": template,
         "template_no_tome": template_no_tome,
+        "template_rules": clean_rules,
     }
     save_config(cfg)
     invalidate_series_cache()

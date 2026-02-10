@@ -135,7 +135,7 @@
                 </div>
 
                 <div class="config-section">
-                    <label class="config-label">Template de nommage</label>
+                    <label class="config-label">Template de nommage (par défaut)</label>
                     <p class="config-hint">Variables : {series}, {tome}, {tome:02d}, {tome:03d}, {ext}, {EXT}</p>
                     <div class="config-input-row">
                         <input type="text" id="config-template" placeholder="{series} - T{tome:02d}{ext}" class="config-input">
@@ -144,10 +144,26 @@
                 </div>
 
                 <div class="config-section">
-                    <label class="config-label">Template sans tome</label>
+                    <label class="config-label">Template sans tome (par défaut)</label>
                     <p class="config-hint">Utilisé quand aucun numéro de tome n'est détecté.</p>
                     <div class="config-input-row">
                         <input type="text" id="config-template-no-tome" placeholder="{series}{ext}" class="config-input">
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <label class="config-label">Règles de template par destination</label>
+                    <p class="config-hint">Appliquer un template différent selon le chemin de destination. Le filtre est cherché dans le chemin (ex: <code>manga</code> matchera <code>/nas/books/manga</code>).</p>
+                    <ul id="config-rules-list" class="config-dest-list"></ul>
+                    <div class="config-rule-add">
+                        <div class="config-input-row">
+                            <input type="text" id="config-new-rule-filter" placeholder="Filtre (ex: manga)" class="config-input config-input-sm">
+                            <input type="text" id="config-new-rule-template" placeholder="Template (ex: {series} T{tome:02d}{ext})" class="config-input">
+                        </div>
+                        <div class="config-input-row" style="margin-top:0.35rem">
+                            <input type="text" id="config-new-rule-no-tome" placeholder="Template sans tome (optionnel)" class="config-input">
+                            <button id="btn-add-rule" type="button" class="btn-config-add">Ajouter</button>
+                        </div>
                     </div>
                 </div>
 

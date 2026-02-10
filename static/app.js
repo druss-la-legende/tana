@@ -12,7 +12,7 @@ btnTheme.addEventListener("click", () => {
 });
 
 // ─── CONFIG STATE ──────────────────────────────────────
-let appConfig = { source_dir: "", destinations: [], template: "", template_no_tome: "" };
+let appConfig = { source_dir: "", destinations: [], template: "", template_no_tome: "", template_rules: [] };
 
 // ─── DOM REFS (files view) ─────────────────────────────
 const selectAll = document.getElementById("select-all");
@@ -36,6 +36,11 @@ const btnSaveConfig = document.getElementById("btn-save-config");
 const configTemplate = document.getElementById("config-template");
 const configTemplateNoTome = document.getElementById("config-template-no-tome");
 const templatePreview = document.getElementById("template-preview");
+const configRulesList = document.getElementById("config-rules-list");
+const configNewRuleFilter = document.getElementById("config-new-rule-filter");
+const configNewRuleTemplate = document.getElementById("config-new-rule-template");
+const configNewRuleNoTome = document.getElementById("config-new-rule-no-tome");
+const btnAddRule = document.getElementById("btn-add-rule");
 
 // ─── DOM REFS (navigation) ─────────────────────────────
 const navTabs = document.querySelectorAll(".nav-tab");
@@ -109,9 +114,50 @@ function loadConfigUI() {
     configSource.value = appConfig.source_dir;
     configTemplate.value = appConfig.template || "{series} - T{tome:02d}{ext}";
     configTemplateNoTome.value = appConfig.template_no_tome || "{series}{ext}";
+    if (!appConfig.template_rules) appConfig.template_rules = [];
     renderDestList();
+    renderRulesList();
     updateTemplatePreview();
 }
+
+function renderRulesList() {
+    configRulesList.innerHTML = "";
+    (appConfig.template_rules || []).forEach((rule, i) => {
+        const li = document.createElement("li");
+        li.className = "config-dest-item config-rule-item";
+        li.innerHTML = `
+            <div class="config-rule-info">
+                <span class="config-rule-filter">${escHtml(rule.filter)}</span>
+                <span class="config-rule-tpl">${escHtml(rule.template)}</span>
+                ${rule.template_no_tome ? `<span class="config-rule-tpl-nt">${escHtml(rule.template_no_tome)}</span>` : ""}
+            </div>
+            <button class="btn-dest-remove" type="button" data-rule-index="${i}" title="Supprimer">&times;</button>
+        `;
+        configRulesList.appendChild(li);
+    });
+}
+
+configRulesList.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-dest-remove");
+    if (!btn || btn.dataset.ruleIndex === undefined) return;
+    const idx = parseInt(btn.dataset.ruleIndex);
+    appConfig.template_rules.splice(idx, 1);
+    renderRulesList();
+});
+
+btnAddRule.addEventListener("click", () => {
+    const filter = configNewRuleFilter.value.trim();
+    const template = configNewRuleTemplate.value.trim();
+    const noTome = configNewRuleNoTome.value.trim();
+    if (!filter) { showToast("Le filtre est requis", "error"); return; }
+    if (!template) { showToast("Le template est requis", "error"); return; }
+    if (!appConfig.template_rules) appConfig.template_rules = [];
+    appConfig.template_rules.push({ filter, template, template_no_tome: noTome });
+    configNewRuleFilter.value = "";
+    configNewRuleTemplate.value = "";
+    configNewRuleNoTome.value = "";
+    renderRulesList();
+});
 
 async function updateTemplatePreview() {
     const template = configTemplate.value.trim();
@@ -190,6 +236,7 @@ btnSaveConfig.addEventListener("click", async () => {
                 destinations: appConfig.destinations,
                 template: configTemplate.value.trim(),
                 template_no_tome: configTemplateNoTome.value.trim(),
+                template_rules: appConfig.template_rules || [],
             }),
         });
         const data = await res.json();
@@ -870,8 +917,17 @@ function updatePreview() {
         return;
     }
 
-    const tpl = appConfig.template || "{series} - T{tome:02d}{ext}";
-    const tplNoTome = appConfig.template_no_tome || "{series}{ext}";
+    let tpl = appConfig.template || "{series} - T{tome:02d}{ext}";
+    let tplNoTome = appConfig.template_no_tome || "{series}{ext}";
+    // Check rules for selected destination
+    const destLower = dest.toLowerCase();
+    for (const rule of (appConfig.template_rules || [])) {
+        if (rule.filter && destLower.includes(rule.filter.toLowerCase())) {
+            tpl = rule.template || tpl;
+            tplNoTome = rule.template_no_tome || tplNoTome;
+            break;
+        }
+    }
 
     previewSection.style.display = "block";
     previewList.innerHTML = selected.map((f) => {
