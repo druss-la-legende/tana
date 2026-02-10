@@ -12,7 +12,7 @@ btnTheme.addEventListener("click", () => {
 });
 
 // ─── CONFIG STATE ──────────────────────────────────────
-let appConfig = { source_dir: "", destinations: [] };
+let appConfig = { source_dir: "", destinations: [], template: "", template_no_tome: "" };
 
 // ─── DOM REFS (files view) ─────────────────────────────
 const selectAll = document.getElementById("select-all");
@@ -33,6 +33,9 @@ const configDestList = document.getElementById("config-dest-list");
 const configNewDest = document.getElementById("config-new-dest");
 const btnAddDest = document.getElementById("btn-add-dest");
 const btnSaveConfig = document.getElementById("btn-save-config");
+const configTemplate = document.getElementById("config-template");
+const configTemplateNoTome = document.getElementById("config-template-no-tome");
+const templatePreview = document.getElementById("template-preview");
 
 // ─── DOM REFS (navigation) ─────────────────────────────
 const viewFiles = document.getElementById("view-files");
@@ -85,8 +88,28 @@ function populateDestinations() {
 // ─── CONFIG PAGE ───────────────────────────────────────
 function loadConfigUI() {
     configSource.value = appConfig.source_dir;
+    configTemplate.value = appConfig.template || "{series} - T{tome:02d}{ext}";
+    configTemplateNoTome.value = appConfig.template_no_tome || "{series}{ext}";
     renderDestList();
+    updateTemplatePreview();
 }
+
+async function updateTemplatePreview() {
+    const template = configTemplate.value.trim();
+    if (!template) { templatePreview.textContent = ""; return; }
+    try {
+        const res = await fetch("/api/template-preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ template, series: "One Piece", tome: 5, ext: ".cbz" }),
+        });
+        const data = await res.json();
+        templatePreview.textContent = data.preview || "";
+    } catch { templatePreview.textContent = ""; }
+}
+
+configTemplate.addEventListener("input", updateTemplatePreview);
+configTemplateNoTome.addEventListener("input", updateTemplatePreview);
 
 function renderDestList() {
     configDestList.innerHTML = "";
@@ -146,6 +169,8 @@ btnSaveConfig.addEventListener("click", async () => {
             body: JSON.stringify({
                 source_dir: sourceDir,
                 destinations: appConfig.destinations,
+                template: configTemplate.value.trim(),
+                template_no_tome: configTemplateNoTome.value.trim(),
             }),
         });
         const data = await res.json();
@@ -803,6 +828,17 @@ function getSelectedFiles() {
     return selected;
 }
 
+function applyTemplateClient(template, series, tome, ext) {
+    let result = template;
+    result = result.replace("{series}", series);
+    result = result.replace("{tome:03d}", tome !== null ? String(tome).padStart(3, "0") : "");
+    result = result.replace("{tome:02d}", tome !== null ? String(tome).padStart(2, "0") : "");
+    result = result.replace("{tome}", tome !== null ? String(tome) : "");
+    result = result.replace("{ext}", ext.toLowerCase());
+    result = result.replace("{EXT}", ext.toUpperCase());
+    return result;
+}
+
 function updatePreview() {
     const selected = getSelectedFiles();
     const name = seriesName.value.trim();
@@ -815,12 +851,14 @@ function updatePreview() {
         return;
     }
 
+    const tpl = appConfig.template || "{series} - T{tome:02d}{ext}";
+    const tplNoTome = appConfig.template_no_tome || "{series}{ext}";
+
     previewSection.style.display = "block";
     previewList.innerHTML = selected.map((f) => {
-        const ext = f.source.split(".").pop();
-        const newName = f.tome !== null
-            ? `${name} - T${String(f.tome).padStart(2, "0")}.${ext}`
-            : `${name}.${ext}`;
+        const ext = "." + f.source.split(".").pop();
+        const template = f.tome !== null ? tpl : tplNoTome;
+        const newName = applyTemplateClient(template, name, f.tome, ext);
         return `<li>
             <span class="preview-old">${f.source}</span>
             <span class="preview-arrow">&rarr;</span>

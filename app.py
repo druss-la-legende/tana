@@ -15,6 +15,8 @@ CONFIG_PATH = Path(__file__).parent / "config.json"
 DEFAULT_CONFIG = {
     "source_dir": "/path/to/incoming",
     "destinations": [],
+    "template": "{series} - T{tome:02d}{ext}",
+    "template_no_tome": "{series}{ext}",
 }
 
 EXTENSIONS = {".cbr", ".cbz", ".pdf"}
@@ -315,6 +317,30 @@ def format_size(size_bytes: int) -> str:
     return f"{size_bytes:.1f} To"
 
 
+DEFAULT_TEMPLATE = "{series} - T{tome:02d}{ext}"
+DEFAULT_TEMPLATE_NO_TOME = "{series}{ext}"
+
+
+def apply_template(template: str, series: str, tome: int | None, ext: str) -> str:
+    """Apply a naming template to produce the final filename."""
+    cfg = load_config()
+    if tome is None:
+        tpl = cfg.get("template_no_tome", DEFAULT_TEMPLATE_NO_TOME)
+        result = tpl.replace("{series}", series)
+        result = result.replace("{ext}", ext.lower())
+        result = result.replace("{EXT}", ext.upper())
+        return result
+
+    result = template
+    result = result.replace("{series}", series)
+    result = result.replace("{tome:03d}", f"{tome:03d}")
+    result = result.replace("{tome:02d}", f"{tome:02d}")
+    result = result.replace("{tome}", str(tome))
+    result = result.replace("{ext}", ext.lower())
+    result = result.replace("{EXT}", ext.upper())
+    return result
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -342,6 +368,17 @@ def api_search_series():
     existing = get_existing_series()
     results = search_series(q, existing)
     return jsonify({"results": results})
+
+
+@app.route("/api/template-preview", methods=["POST"])
+def api_template_preview():
+    data = request.get_json()
+    template = data.get("template", DEFAULT_TEMPLATE)
+    series = data.get("series", "One Piece")
+    tome = data.get("tome", 5)
+    ext = data.get("ext", ".cbz")
+    preview = apply_template(template, series, tome, ext)
+    return jsonify({"preview": preview})
 
 
 @app.route("/api/organize-matched", methods=["POST"])
@@ -381,10 +418,8 @@ def api_organize_matched():
             continue
 
         ext = source_path.suffix.lower()
-        if tome is not None:
-            new_name = f"{series_name} - T{int(tome):02d}{ext}"
-        else:
-            new_name = f"{series_name}{ext}"
+        template = cfg.get("template", DEFAULT_TEMPLATE)
+        new_name = apply_template(template, series_name, int(tome) if tome is not None else None, ext)
 
         dest_path = series_dir / new_name
         if dest_path.exists():
@@ -457,11 +492,8 @@ def api_organize():
             continue
 
         ext = source_path.suffix.lower()
-
-        if tome is not None:
-            new_name = f"{series_name} - T{int(tome):02d}{ext}"
-        else:
-            new_name = f"{series_name}{ext}"
+        template = cfg.get("template", DEFAULT_TEMPLATE)
+        new_name = apply_template(template, series_name, int(tome) if tome is not None else None, ext)
 
         dest_path = series_dir / new_name
 
@@ -553,7 +585,17 @@ def api_save_config():
     if not destinations:
         return jsonify({"error": "Au moins une destination est requise"}), 400
 
-    cfg = {"source_dir": source_dir, "destinations": destinations}
+    template = data.get("template", DEFAULT_TEMPLATE).strip()
+    template_no_tome = data.get("template_no_tome", DEFAULT_TEMPLATE_NO_TOME).strip()
+    if "{series}" not in template or "{ext}" not in template.lower():
+        return jsonify({"error": "Le template doit contenir {series} et {ext}"}), 400
+
+    cfg = {
+        "source_dir": source_dir,
+        "destinations": destinations,
+        "template": template,
+        "template_no_tome": template_no_tome,
+    }
     save_config(cfg)
     invalidate_series_cache()
     return jsonify({"success": True, "config": cfg})

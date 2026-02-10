@@ -1227,3 +1227,14 @@ td.col-search-ext {
         padding: 1.25rem;
     }
 }
+
+/* --- TEMPLATE PREVIEW --- */
+.template-preview-text {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--success);
+    padding: 0.2rem 0.5rem;
+    background: rgba(52, 211, 153, 0.08);
+    border-radius: 4px;
+}
