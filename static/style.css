@@ -1378,6 +1378,46 @@ td.col-search-ext {
     margin: 0;
 }
 
+.audit-loader {
+    padding: 2rem 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+}
+
+.audit-loader-bar {
+    height: 4px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 1rem;
+    background: var(--bg);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+}
+
+.audit-loader-bar::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 40%;
+    background: var(--accent);
+    border-radius: 2px;
+    animation: audit-loader-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes audit-loader-slide {
+    0% { left: -40%; }
+    100% { left: 100%; }
+}
+
+.audit-loader-text {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
 .audit-summary {
     display: flex;
     gap: 1rem;

@@ -52,6 +52,7 @@ const auditControls = document.getElementById("audit-controls");
 const auditFilterSelect = document.getElementById("audit-filter");
 const auditSearchInput = document.getElementById("audit-search");
 const btnRunAudit = document.getElementById("btn-run-audit");
+const auditLoader = document.getElementById("audit-loader");
 
 let filesData = [];
 let sortField = null;  // "name", "series", "tome", "size"
@@ -1125,6 +1126,10 @@ btnRefreshHistory.addEventListener("click", loadHistory);
 async function runAudit() {
     btnRunAudit.disabled = true;
     btnRunAudit.textContent = "Analyse en cours...";
+    auditLoader.style.display = "";
+    auditSummary.innerHTML = "";
+    auditTbody.innerHTML = "";
+    auditControls.style.display = "none";
     try {
         const res = await fetch("/api/audit");
         auditData = await res.json();
@@ -1134,6 +1139,7 @@ async function runAudit() {
     } catch {
         showToast("Erreur lors de l'audit", "error");
     } finally {
+        auditLoader.style.display = "none";
         btnRunAudit.disabled = false;
         btnRunAudit.textContent = "Relancer l'audit";
     }
