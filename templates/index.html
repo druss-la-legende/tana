@@ -28,6 +28,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 Historique
             </button>
+            <button class="nav-tab" data-view="convert" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Convertir
+            </button>
             <button class="nav-tab" data-view="config" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 Configuration
@@ -190,6 +194,7 @@
                             <option value="delete">Supprimer</option>
                             <option value="undelete">Restaurer</option>
                             <option value="fix_naming">Correction nommage</option>
+                            <option value="convert">Convertir CBR</option>
                         </select>
                         <button id="btn-refresh-history" type="button" class="btn-config-add">Rafraîchir</button>
                     </div>
@@ -257,6 +262,55 @@
                             <tr class="empty-row"><td colspan="6">Lancez un audit pour analyser votre collection</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONVERT VIEW -->
+        <section id="view-convert" style="display:none">
+            <div class="convert-panel">
+                <div class="convert-header">
+                    <h2>Convertir CBR &rarr; CBZ</h2>
+                </div>
+
+                <div class="convert-controls">
+                    <div class="convert-path-wrap">
+                        <label class="config-label">Dossier à scanner</label>
+                        <div class="convert-path-input-wrap">
+                            <input type="text" id="convert-path" placeholder="/chemin/vers/dossier" class="config-input" autocomplete="off">
+                            <div class="convert-path-suggestions" id="convert-path-suggestions"></div>
+                        </div>
+                        <button id="btn-scan-cbr" type="button" class="btn-config-add">Scanner</button>
+                    </div>
+                    <div class="convert-options">
+                        <label><input type="checkbox" id="convert-delete-original"> Supprimer les CBR après conversion</label>
+                    </div>
+                </div>
+
+                <div class="convert-progress" id="convert-progress" style="display:none">
+                    <div class="audit-loader-bar"></div>
+                    <p id="convert-progress-text">Conversion en cours...</p>
+                </div>
+
+                <div class="convert-table-wrap">
+                    <table class="convert-table">
+                        <thead>
+                            <tr>
+                                <th class="col-check"><input type="checkbox" id="convert-select-all"></th>
+                                <th>Fichier</th>
+                                <th>Tome</th>
+                                <th>Taille</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="convert-tbody">
+                            <tr class="empty-row"><td colspan="5">Entrez un chemin et scannez pour trouver les fichiers CBR</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="convert-actions">
+                    <button id="btn-convert" type="button" disabled>Convertir la sélection</button>
                 </div>
             </div>
         </section>

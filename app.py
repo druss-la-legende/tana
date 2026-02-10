@@ -2,10 +2,13 @@ import json
 import os
 import re
 import shutil
+import tempfile
 import time
+import zipfile
 from collections import Counter
 from pathlib import Path
 
+import rarfile
 from flask import Flask, jsonify, render_template, request
 from unidecode import unidecode
 
@@ -831,6 +834,98 @@ def api_save_config():
     save_config(cfg)
     invalidate_series_cache()
     return jsonify({"success": True, "config": cfg})
+
+
+def convert_cbr_to_cbz(cbr_path: Path, delete_original: bool = False) -> Path:
+    """Convert a .cbr (RAR) file to .cbz (ZIP). Returns the path of the created .cbz."""
+    cbz_path = cbr_path.with_suffix(".cbz")
+    if cbz_path.exists():
+        raise FileExistsError(f"{cbz_path.name} existe déjà")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        with rarfile.RarFile(str(cbr_path)) as rf:
+            rf.extractall(tmp)
+
+        with zipfile.ZipFile(str(cbz_path), "w", zipfile.ZIP_STORED) as zf:
+            for root, _dirs, fnames in os.walk(tmp):
+                for fname in sorted(fnames):
+                    fpath = Path(root) / fname
+                    arcname = str(fpath.relative_to(tmp))
+                    zf.write(fpath, arcname)
+
+        if delete_original:
+            cbr_path.unlink()
+
+    return cbz_path
+
+
+@app.route("/api/scan-cbr")
+def api_scan_cbr():
+    scan_path = request.args.get("path", "").strip()
+    if not scan_path:
+        return jsonify({"error": "Chemin requis"}), 400
+
+    base = Path(scan_path)
+    if not base.is_dir():
+        return jsonify({"error": "Dossier introuvable"}), 400
+
+    groups: dict[str, dict] = {}
+    for f in sorted(base.rglob("*.cbr")):
+        if any(part.startswith(".") for part in f.relative_to(base).parts):
+            continue
+        parent = f.parent
+        group_key = str(parent)
+        if group_key not in groups:
+            groups[group_key] = {
+                "folder": str(parent),
+                "series_name": parent.name if parent != base else "(racine)",
+                "files": [],
+            }
+        cbz_sibling = f.with_suffix(".cbz")
+        groups[group_key]["files"].append({
+            "name": f.name,
+            "path": str(f),
+            "size": f.stat().st_size,
+            "size_human": format_size(f.stat().st_size),
+            "tome": detect_tome(f.name),
+            "has_cbz": cbz_sibling.exists(),
+        })
+
+    return jsonify({"groups": list(groups.values())})
+
+
+@app.route("/api/convert", methods=["POST"])
+def api_convert():
+    data = request.get_json()
+    items = data.get("items", [])
+    delete_original = data.get("delete_original", False)
+
+    if not items:
+        return jsonify({"error": "Aucun fichier sélectionné"}), 400
+
+    results = []
+    for item in items:
+        cbr_path = Path(item.get("path", ""))
+        if not cbr_path.is_file() or cbr_path.suffix.lower() != ".cbr":
+            results.append({"source": str(cbr_path), "error": "Fichier CBR introuvable"})
+            continue
+
+        try:
+            cbz_path = convert_cbr_to_cbz(cbr_path, delete_original)
+            results.append({
+                "source": cbr_path.name,
+                "destination": cbz_path.name,
+                "success": True,
+            })
+            log_action("convert", {
+                "source": str(cbr_path),
+                "destination": str(cbz_path),
+                "deleted_original": delete_original,
+            })
+        except Exception as e:
+            results.append({"source": cbr_path.name, "error": str(e)})
+
+    return jsonify({"results": results})
 
 
 if __name__ == "__main__":

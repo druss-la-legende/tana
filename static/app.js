@@ -60,10 +60,23 @@ const auditSearchInput = document.getElementById("audit-search");
 const btnRunAudit = document.getElementById("btn-run-audit");
 const auditLoader = document.getElementById("audit-loader");
 
+// ─── DOM REFS (convert view) ─────────────────────────
+const convertPathInput = document.getElementById("convert-path");
+const convertPathSuggestions = document.getElementById("convert-path-suggestions");
+const btnScanCbr = document.getElementById("btn-scan-cbr");
+const btnConvert = document.getElementById("btn-convert");
+const convertDeleteOriginal = document.getElementById("convert-delete-original");
+const convertTbody = document.getElementById("convert-tbody");
+const convertSelectAll = document.getElementById("convert-select-all");
+const convertProgress = document.getElementById("convert-progress");
+const convertProgressText = document.getElementById("convert-progress-text");
+
 let filesData = [];
 let sortField = null;  // "name", "series", "tome", "size"
 let sortDir = "asc";   // "asc" or "desc"
 let filterMatch = "all"; // "all", "matched", "suggested", "unmatched"
+
+let convertData = [];
 
 let auditData = null;
 let auditFilter = "all";
@@ -1165,6 +1178,7 @@ function renderHistory() {
         delete: "Supprimer",
         undelete: "Restaurer",
         fix_naming: "Correction nommage",
+        convert: "Convertir CBR",
     };
 
     historyTbody.innerHTML = historyData.map((h) => {
@@ -1177,6 +1191,8 @@ function renderHistory() {
             detail = escHtml(h.filename || "");
         } else if (h.action === "fix_naming") {
             detail = `${escHtml(h.current || "")} &rarr; ${escHtml(h.expected || "")}`;
+        } else if (h.action === "convert") {
+            detail = `${escHtml(h.source || "")} &rarr; ${escHtml(h.destination || "")}`;
         }
 
         return `<tr class="history-row">
@@ -1389,6 +1405,166 @@ auditSearchInput.addEventListener("input", () => {
 });
 
 btnRunAudit.addEventListener("click", runAudit);
+
+// ─── CONVERT CBR → CBZ ─────────────────────────────────
+
+// Path suggestions from configured destinations
+convertPathInput.addEventListener("input", () => {
+    const val = convertPathInput.value.trim().toLowerCase();
+    if (!val) {
+        convertPathSuggestions.style.display = "none";
+        return;
+    }
+    const dests = appConfig.destinations.filter((d) => d.toLowerCase().includes(val));
+    if (dests.length === 0) {
+        convertPathSuggestions.style.display = "none";
+        return;
+    }
+    convertPathSuggestions.innerHTML = dests
+        .map((d) => `<div class="convert-suggestion-item">${escHtml(d)}</div>`)
+        .join("");
+    convertPathSuggestions.style.display = "";
+});
+
+convertPathInput.addEventListener("focus", () => {
+    if (!convertPathInput.value.trim() && appConfig.destinations.length > 0) {
+        convertPathSuggestions.innerHTML = appConfig.destinations
+            .map((d) => `<div class="convert-suggestion-item">${escHtml(d)}</div>`)
+            .join("");
+        convertPathSuggestions.style.display = "";
+    }
+});
+
+convertPathSuggestions.addEventListener("click", (e) => {
+    const item = e.target.closest(".convert-suggestion-item");
+    if (item) {
+        convertPathInput.value = item.textContent;
+        convertPathSuggestions.style.display = "none";
+    }
+});
+
+document.addEventListener("click", (e) => {
+    if (!e.target.closest(".convert-path-input-wrap")) {
+        convertPathSuggestions.style.display = "none";
+    }
+});
+
+async function scanCbr() {
+    const scanPath = convertPathInput.value.trim();
+    if (!scanPath) {
+        showToast("Entrez un chemin de dossier", "error");
+        return;
+    }
+
+    btnScanCbr.disabled = true;
+    btnScanCbr.textContent = "Scan...";
+    try {
+        const res = await fetch(`/api/scan-cbr?path=${encodeURIComponent(scanPath)}`);
+        const data = await res.json();
+        if (data.error) {
+            showToast(data.error, "error");
+            convertData = [];
+        } else {
+            convertData = data.groups;
+        }
+        renderConvertTable();
+    } catch {
+        showToast("Erreur lors du scan", "error");
+    } finally {
+        btnScanCbr.disabled = false;
+        btnScanCbr.textContent = "Scanner";
+    }
+}
+
+function renderConvertTable() {
+    if (convertData.length === 0) {
+        convertTbody.innerHTML = `<tr class="empty-row"><td colspan="5">Aucun fichier CBR trouvé</td></tr>`;
+        btnConvert.disabled = true;
+        return;
+    }
+
+    let html = "";
+    let fileIndex = 0;
+    convertData.forEach((group) => {
+        html += `<tr class="convert-group-row"><td colspan="5"><strong>${escHtml(group.series_name)}</strong> <span class="text-muted">(${group.files.length} fichiers)</span></td></tr>`;
+        group.files.forEach((f) => {
+            const disabled = f.has_cbz ? "disabled" : "";
+            const rowClass = f.has_cbz ? "convert-row convert-row-exists" : "convert-row";
+            const status = f.has_cbz ? `<span class="convert-status-exists">CBZ existe</span>` : (f.status || "");
+            const tome = f.tome != null ? `T${String(f.tome).padStart(2, "0")}` : "-";
+            html += `<tr class="${rowClass}">
+                <td class="col-check"><input type="checkbox" class="convert-check" data-path="${escHtml(f.path)}" ${disabled}></td>
+                <td>${escHtml(f.name)}</td>
+                <td>${tome}</td>
+                <td>${f.size_human}</td>
+                <td>${status}</td>
+            </tr>`;
+            fileIndex++;
+        });
+    });
+    convertTbody.innerHTML = html;
+    updateConvertButton();
+}
+
+function getConvertChecked() {
+    return Array.from(convertTbody.querySelectorAll(".convert-check:checked:not(:disabled)"));
+}
+
+function updateConvertButton() {
+    const checked = getConvertChecked();
+    btnConvert.disabled = checked.length === 0;
+    btnConvert.textContent = checked.length > 0
+        ? `Convertir la sélection (${checked.length})`
+        : "Convertir la sélection";
+}
+
+convertTbody.addEventListener("change", updateConvertButton);
+
+convertSelectAll.addEventListener("change", () => {
+    const checks = convertTbody.querySelectorAll(".convert-check:not(:disabled)");
+    checks.forEach((c) => (c.checked = convertSelectAll.checked));
+    updateConvertButton();
+});
+
+async function convertSelected() {
+    const checked = getConvertChecked();
+    if (checked.length === 0) return;
+
+    const items = checked.map((c) => ({ path: c.dataset.path }));
+    const deleteOriginal = convertDeleteOriginal.checked;
+
+    btnConvert.disabled = true;
+    convertProgress.style.display = "";
+    convertProgressText.textContent = `Conversion de ${items.length} fichier${items.length > 1 ? "s" : ""} en cours...`;
+
+    try {
+        const res = await fetch("/api/convert", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items, delete_original: deleteOriginal }),
+        });
+        const data = await res.json();
+        if (data.error) {
+            showToast(data.error, "error");
+        } else {
+            const successes = data.results.filter((r) => r.success);
+            const errors = data.results.filter((r) => r.error);
+            if (successes.length > 0) {
+                showToast(`${successes.length} fichier${successes.length > 1 ? "s" : ""} converti${successes.length > 1 ? "s" : ""}`, "success");
+            }
+            errors.forEach((err) => showToast(`${err.source}: ${err.error}`, "error"));
+        }
+        // Re-scan to refresh statuses
+        await scanCbr();
+    } catch {
+        showToast("Erreur lors de la conversion", "error");
+    } finally {
+        convertProgress.style.display = "none";
+    }
+}
+
+btnScanCbr.addEventListener("click", scanCbr);
+btnConvert.addEventListener("click", convertSelected);
 
 // ─── INIT ──────────────────────────────────────────────
 async function init() {
