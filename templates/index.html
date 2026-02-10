@@ -69,13 +69,14 @@
                                 <th class="col-search-ext"></th>
                                 <th class="col-match">Série existante</th>
                                 <th class="col-tome sortable" data-sort="tome">Tome</th>
+                                <th class="col-title">Titre</th>
                                 <th class="col-size sortable" data-sort="size">Taille</th>
                                 <th class="col-actions"></th>
                             </tr>
                         </thead>
                         <tbody id="file-tbody">
                             <tr class="empty-row">
-                                <td colspan="8">Chargement...</td>
+                                <td colspan="9">Chargement...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -136,7 +137,7 @@
 
                 <div class="config-section">
                     <label class="config-label">Template de nommage (par défaut)</label>
-                    <p class="config-hint">Variables : {series}, {tome}, {tome:02d}, {tome:03d}, {ext}, {EXT}</p>
+                    <p class="config-hint">Variables : {series}, {tome}, {tome:02d}, {tome:03d}, {title}, {ext}, {EXT}</p>
                     <div class="config-input-row">
                         <input type="text" id="config-template" placeholder="{series} - T{tome:02d}{ext}" class="config-input">
                     </div>

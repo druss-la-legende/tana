@@ -318,6 +318,7 @@ function buildFileRow(f, i, extraClass = "") {
             </div>
         </td>
         <td class="col-tome">${tomeDisplay}</td>
+        <td class="col-title"><input type="text" class="title-input" data-index="${i}" value="" placeholder="Titre (optionnel)" autocomplete="off"></td>
         <td class="col-size">${f.size_human}</td>
         <td class="col-actions"><button class="btn-delete" type="button" data-index="${i}" title="Supprimer ${escHtml(f.name)}">&#x2715;</button></td>
     </tr>`;
@@ -363,7 +364,7 @@ function renderFiles() {
     const scrollTop = tableWrap ? tableWrap.scrollTop : 0;
 
     if (filesData.length === 0) {
-        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="8">Aucun fichier CBR/CBZ/PDF trouvé</td></tr>`;
+        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="9">Aucun fichier CBR/CBZ/PDF trouvé</td></tr>`;
         fileCount.textContent = "0 fichier";
         return;
     }
@@ -376,7 +377,7 @@ function renderFiles() {
         : `${total} fichier${total > 1 ? "s" : ""}`;
 
     if (displayItems.length === 0) {
-        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="8">Aucun fichier ne correspond au filtre</td></tr>`;
+        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="9">Aucun fichier ne correspond au filtre</td></tr>`;
         selectAll.checked = false;
         updatePreview();
         btnOrganizeMatched.style.display = "none";
@@ -425,12 +426,12 @@ function renderFiles() {
             const indices = group.files.map((f) => f.index);
             // Spacer row between groups (not before the first)
             if (groupIdx > 0) {
-                html += `<tr class="group-spacer"><td colspan="8"></td></tr>`;
+                html += `<tr class="group-spacer"><td colspan="9"></td></tr>`;
             }
             if (group.files.length > 1) {
                 html += `<tr class="group-header" data-group-indices="${indices.join(",")}">
                     <td class="col-check"><input type="checkbox" class="group-check" data-group-indices="${indices.join(",")}"></td>
-                    <td colspan="7"><span class="group-label">${escHtml(group.label)}</span><span class="group-count">${group.files.length}</span></td>
+                    <td colspan="8"><span class="group-label">${escHtml(group.label)}</span><span class="group-count">${group.files.length}</span></td>
                 </tr>`;
             }
             for (let gi = 0; gi < group.files.length; gi++) {
@@ -628,7 +629,9 @@ fileTbody.addEventListener("click", async (e) => {
     if (!serName || !dest) return;
     const file = filesData[idx];
     const tomeInput = fileTbody.querySelector(`.tome-input[data-index="${idx}"]`);
+    const titleInput = fileTbody.querySelector(`.title-input[data-index="${idx}"]`);
     const tome = tomeInput && tomeInput.value !== "" ? parseInt(tomeInput.value) : null;
+    const title = titleInput ? titleInput.value.trim() : "";
     const source = appConfig.source_dir;
 
     // Disable button during request
@@ -645,7 +648,7 @@ fileTbody.addEventListener("click", async (e) => {
                 destination: dest,
                 source_dir: source,
                 force: true,
-                files: [{ source: file.name, tome }],
+                files: [{ source: file.name, tome, title }],
             }),
         });
 
@@ -743,7 +746,7 @@ fileTbody.addEventListener("change", (e) => {
 });
 
 fileTbody.addEventListener("input", (e) => {
-    if (e.target.classList.contains("tome-input")) {
+    if (e.target.classList.contains("tome-input") || e.target.classList.contains("title-input")) {
         updatePreview();
     }
 });
@@ -884,24 +887,33 @@ function getSelectedFiles() {
     document.querySelectorAll(".file-check:checked").forEach((cb) => {
         const idx = parseInt(cb.dataset.index);
         const tomeInput = document.querySelector(`.tome-input[data-index="${idx}"]`);
+        const titleInput = document.querySelector(`.title-input[data-index="${idx}"]`);
         const tome = tomeInput.value !== "" ? parseInt(tomeInput.value) : null;
+        const title = titleInput ? titleInput.value.trim() : "";
         selected.push({
             source: filesData[idx].name,
             tome: tome,
+            title: title,
             index: idx,
         });
     });
     return selected;
 }
 
-function applyTemplateClient(template, series, tome, ext) {
+function applyTemplateClient(template, series, tome, ext, title) {
     let result = template;
     result = result.replace("{series}", series);
     result = result.replace("{tome:03d}", tome !== null ? String(tome).padStart(3, "0") : "");
     result = result.replace("{tome:02d}", tome !== null ? String(tome).padStart(2, "0") : "");
     result = result.replace("{tome}", tome !== null ? String(tome) : "");
+    result = result.replace("{title}", title || "");
     result = result.replace("{ext}", ext.toLowerCase());
     result = result.replace("{EXT}", ext.toUpperCase());
+    // Clean up dangling separators if title is empty
+    if (!title) {
+        result = result.replace(/\s*-\s*-/g, " -");
+        result = result.replace(/\s*-\s*\./g, ".");
+    }
     return result;
 }
 
@@ -933,7 +945,7 @@ function updatePreview() {
     previewList.innerHTML = selected.map((f) => {
         const ext = "." + f.source.split(".").pop();
         const template = f.tome !== null ? tpl : tplNoTome;
-        const newName = applyTemplateClient(template, name, f.tome, ext);
+        const newName = applyTemplateClient(template, name, f.tome, ext, f.title);
         return `<li>
             <span class="preview-old">${f.source}</span>
             <span class="preview-arrow">&rarr;</span>
@@ -966,6 +978,7 @@ async function doOrganize(force = false) {
                 files: selected.map((f) => ({
                     source: f.source,
                     tome: f.tome,
+                    title: f.title,
                 })),
             }),
         });

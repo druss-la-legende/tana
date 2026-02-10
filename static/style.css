@@ -355,6 +355,34 @@ tbody td {
     width: 100px;
 }
 
+.col-title {
+    min-width: 140px;
+    width: 180px;
+}
+
+.title-input {
+    width: 100%;
+    padding: 0.25rem 0.4rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-high);
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.title-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.title-input::placeholder {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+}
+
 .col-size {
     width: 100px;
     text-align: right;

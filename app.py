@@ -374,11 +374,12 @@ def get_template_for_dest(cfg: dict, destination: str) -> tuple[str, str]:
 
 
 def apply_template(template: str, series: str, tome: int | None, ext: str,
-                    template_no_tome: str = "") -> str:
+                    template_no_tome: str = "", title: str = "") -> str:
     """Apply a naming template to produce the final filename."""
     if tome is None:
         tpl = template_no_tome or DEFAULT_TEMPLATE_NO_TOME
         result = tpl.replace("{series}", series)
+        result = result.replace("{title}", title)
         result = result.replace("{ext}", ext.lower())
         result = result.replace("{EXT}", ext.upper())
         return result
@@ -388,8 +389,13 @@ def apply_template(template: str, series: str, tome: int | None, ext: str,
     result = result.replace("{tome:03d}", f"{tome:03d}")
     result = result.replace("{tome:02d}", f"{tome:02d}")
     result = result.replace("{tome}", str(tome))
+    result = result.replace("{title}", title)
     result = result.replace("{ext}", ext.lower())
     result = result.replace("{EXT}", ext.upper())
+    # Clean up dangling separators if title is empty
+    if not title:
+        result = re.sub(r"\s*-\s*-", " -", result)
+        result = re.sub(r"\s*-\s*\.", ".", result)
     return result
 
 
@@ -582,7 +588,8 @@ def api_template_preview():
     series = data.get("series", "One Piece")
     tome = data.get("tome", 5)
     ext = data.get("ext", ".cbz")
-    preview = apply_template(template, series, tome, ext)
+    title = data.get("title", "Le voyage de Balaba")
+    preview = apply_template(template, series, tome, ext, title=title)
     return jsonify({"preview": preview})
 
 
@@ -603,6 +610,7 @@ def api_organize_matched():
         destination = item.get("destination", "").strip()
         source_name = item.get("source", "")
         tome = item.get("tome")
+        title = item.get("title", "").strip()
 
         if not is_safe_filename(source_name, source_dir):
             results.append({"source": source_name, "error": "Chemin non autorisé"})
@@ -624,7 +632,7 @@ def api_organize_matched():
 
         ext = source_path.suffix.lower()
         tpl, tpl_no_tome = get_template_for_dest(cfg, destination)
-        new_name = apply_template(tpl, series_name, int(tome) if tome is not None else None, ext, tpl_no_tome)
+        new_name = apply_template(tpl, series_name, int(tome) if tome is not None else None, ext, tpl_no_tome, title)
 
         dest_path = series_dir / new_name
         if dest_path.exists():
@@ -687,6 +695,7 @@ def api_organize():
     for file_info in files:
         source_name = file_info.get("source", "")
         tome = file_info.get("tome")
+        title = file_info.get("title", "").strip()
 
         if not is_safe_filename(source_name, source_dir):
             results.append({"source": source_name, "error": "Chemin non autorisé"})
@@ -699,7 +708,7 @@ def api_organize():
 
         ext = source_path.suffix.lower()
         tpl, tpl_no_tome = get_template_for_dest(cfg, destination)
-        new_name = apply_template(tpl, series_name, int(tome) if tome is not None else None, ext, tpl_no_tome)
+        new_name = apply_template(tpl, series_name, int(tome) if tome is not None else None, ext, tpl_no_tome, title)
 
         dest_path = series_dir / new_name
 
