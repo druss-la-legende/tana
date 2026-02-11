@@ -14,27 +14,27 @@
 <body>
     <header>
         <h1>Tana</h1>
-        <p class="subtitle">Organise tes CBR / CBZ / PDF</p>
+        <p class="subtitle" data-i18n="subtitle">Organise tes CBR / CBZ / PDF</p>
         <nav class="header-nav">
             <button class="nav-tab active" data-view="files" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                Fichiers
+                <span data-i18n="tab.files">Fichiers</span>
             </button>
             <button class="nav-tab" data-view="audit" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                Audit
+                <span data-i18n="tab.audit">Audit</span>
             </button>
             <button class="nav-tab" data-view="history" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                Historique
+                <span data-i18n="tab.history">Historique</span>
             </button>
             <button class="nav-tab" data-view="convert" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                Convertir
+                <span data-i18n="tab.convert">Convertir</span>
             </button>
             <button class="nav-tab" data-view="config" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                Configuration
+                <span data-i18n="tab.config">Configuration</span>
             </button>
         </nav>
         <button id="btn-theme" class="theme-toggle" type="button" aria-label="Toggle theme">
@@ -50,19 +50,19 @@
                 <div class="file-list-header">
                     <div class="select-all-wrap">
                         <input type="checkbox" id="select-all">
-                        <label for="select-all">Tout sélectionner</label>
+                        <label for="select-all" data-i18n="files.select_all">Tout s&#233;lectionner</label>
                     </div>
                     <div class="filter-wrap">
                         <select id="filter-match" class="filter-select">
-                            <option value="all">Tous</option>
-                            <option value="matched">Matchés</option>
-                            <option value="suggested">Suggestions</option>
-                            <option value="unmatched">Sans match</option>
+                            <option value="all" data-i18n="files.filter.all">Tous</option>
+                            <option value="matched" data-i18n="files.filter.matched">Match&#233;s</option>
+                            <option value="suggested" data-i18n="files.filter.suggested">Suggestions</option>
+                            <option value="unmatched" data-i18n="files.filter.unmatched">Sans match</option>
                         </select>
                     </div>
-                    <button id="btn-organize-matched" type="button" class="btn-batch" style="display:none">Organiser tous les matchés</button>
+                    <button id="btn-organize-matched" type="button" class="btn-batch" style="display:none" data-i18n="files.btn.organize_matched">Organiser tous les match&#233;s</button>
                     <span class="file-count" id="file-count"></span>
-                    <button id="btn-refresh-files" type="button" class="btn-config-add" title="Rafraîchir">
+                    <button id="btn-refresh-files" type="button" class="btn-config-add" data-i18n-title="files.btn.refresh" title="Rafra&#238;chir">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                     </button>
                 </div>
@@ -71,19 +71,19 @@
                         <thead>
                             <tr>
                                 <th class="col-check"></th>
-                                <th class="col-name sortable" data-sort="name">Fichier</th>
-                                <th class="col-series sortable" data-sort="series">Série détectée</th>
+                                <th class="col-name sortable" data-sort="name" data-i18n="files.col.file">Fichier</th>
+                                <th class="col-series sortable" data-sort="series" data-i18n="files.col.series">S&#233;rie d&#233;tect&#233;e</th>
                                 <th class="col-search-ext"></th>
-                                <th class="col-match">Série existante</th>
-                                <th class="col-tome sortable" data-sort="tome">Tome</th>
-                                <th class="col-title">Titre</th>
-                                <th class="col-size sortable" data-sort="size">Taille</th>
+                                <th class="col-match" data-i18n="files.col.existing">S&#233;rie existante</th>
+                                <th class="col-tome sortable" data-sort="tome" data-i18n="files.col.tome">Tome</th>
+                                <th class="col-title" data-i18n="files.col.title">Titre</th>
+                                <th class="col-size sortable" data-sort="size" data-i18n="files.col.size">Taille</th>
                                 <th class="col-actions"></th>
                             </tr>
                         </thead>
                         <tbody id="file-tbody">
                             <tr class="empty-row">
-                                <td colspan="9">Chargement...</td>
+                                <td colspan="9" data-i18n="files.loading">Chargement...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -91,30 +91,30 @@
             </section>
 
             <section class="action-panel">
-                <h2>Organiser</h2>
+                <h2 data-i18n="action.organize">Organiser</h2>
                 <div class="action-fields">
                     <div class="field">
-                        <label for="series-name">Nom de la série</label>
+                        <label for="series-name" data-i18n="action.series_name">Nom de la s&#233;rie</label>
                         <div class="action-search-wrap">
-                            <input type="text" id="series-name" placeholder="Ex: One Piece" autocomplete="off">
+                            <input type="text" id="series-name" data-i18n-placeholder="action.series_placeholder" placeholder="Ex: One Piece" autocomplete="off">
                             <div class="action-dropdown" id="action-dropdown"></div>
                         </div>
                     </div>
                     <div class="field">
-                        <label for="destination">Destination</label>
+                        <label for="destination" data-i18n="action.destination">Destination</label>
                         <select id="destination">
-                            <option value="">-- Choisir --</option>
+                            <option value="" data-i18n="action.choose">-- Choisir --</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="preview-section" id="preview-section" style="display:none;">
-                    <h3>Aperçu</h3>
+                    <h3 data-i18n="action.preview">Aper&#231;u</h3>
                     <ul id="preview-list"></ul>
                 </div>
 
                 <div class="action-buttons">
-                    <button id="btn-organize" type="button" disabled>Organiser les fichiers</button>
+                    <button id="btn-organize" type="button" disabled data-i18n="action.btn_organize">Organiser les fichiers</button>
                 </div>
             </section>
         </section>
@@ -122,61 +122,71 @@
         <!-- CONFIG VIEW -->
         <section id="view-config" style="display:none">
             <div class="config-panel">
-                <h2>Configuration</h2>
+                <h2 data-i18n="config.title">Configuration</h2>
 
                 <div class="config-section">
-                    <label class="config-label">Dossier source</label>
-                    <p class="config-hint">Dossier scanné au démarrage pour trouver les fichiers à organiser.</p>
+                    <label class="config-label" data-i18n="config.lang">Langue / Language</label>
                     <div class="config-input-row">
-                        <input type="text" id="config-source" placeholder="/chemin/vers/dossier" class="config-input">
+                        <select id="config-lang" class="config-input" style="max-width:200px">
+                            <option value="fr">Fran&#231;ais</option>
+                            <option value="en">English</option>
+                        </select>
                     </div>
                 </div>
 
                 <div class="config-section">
-                    <label class="config-label">Dossiers de destination</label>
-                    <p class="config-hint">Dossiers dans lesquels les séries sont organisées. Ils sont scannés pour détecter les séries existantes.</p>
+                    <label class="config-label" data-i18n="config.source_dir">Dossier source</label>
+                    <p class="config-hint" data-i18n="config.source_hint">Dossier scann&#233; au d&#233;marrage pour trouver les fichiers &#224; organiser.</p>
+                    <div class="config-input-row">
+                        <input type="text" id="config-source" data-i18n-placeholder="config.source_placeholder" placeholder="/chemin/vers/dossier" class="config-input">
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <label class="config-label" data-i18n="config.destinations">Dossiers de destination</label>
+                    <p class="config-hint" data-i18n="config.destinations_hint">Dossiers dans lesquels les s&#233;ries sont organis&#233;es. Ils sont scann&#233;s pour d&#233;tecter les s&#233;ries existantes.</p>
                     <ul id="config-dest-list" class="config-dest-list"></ul>
                     <div class="config-input-row">
-                        <input type="text" id="config-new-dest" placeholder="/chemin/vers/nouveau/dossier" class="config-input">
-                        <button id="btn-add-dest" type="button" class="btn-config-add">Ajouter</button>
+                        <input type="text" id="config-new-dest" data-i18n-placeholder="config.dest_placeholder" placeholder="/chemin/vers/nouveau/dossier" class="config-input">
+                        <button id="btn-add-dest" type="button" class="btn-config-add" data-i18n="config.btn_add">Ajouter</button>
                     </div>
                 </div>
 
                 <div class="config-section">
-                    <label class="config-label">Template de nommage (par défaut)</label>
-                    <p class="config-hint">Variables : {series}, {tome}, {tome:02d}, {tome:03d}, {title}, {ext}, {EXT}</p>
+                    <label class="config-label" data-i18n="config.template">Template de nommage (par d&#233;faut)</label>
+                    <p class="config-hint" data-i18n="config.template_hint">Variables : {series}, {tome}, {tome:02d}, {tome:03d}, {title}, {ext}, {EXT}</p>
                     <div class="config-input-row">
                         <input type="text" id="config-template" placeholder="{series} - T{tome:02d}{ext}" class="config-input">
                     </div>
-                    <p class="config-hint" style="margin-top:0.5rem">Aperçu : <span id="template-preview" class="template-preview-text"></span></p>
+                    <p class="config-hint" style="margin-top:0.5rem"><span data-i18n="config.preview_label">Aper&#231;u :</span> <span id="template-preview" class="template-preview-text"></span></p>
                 </div>
 
                 <div class="config-section">
-                    <label class="config-label">Template sans tome (par défaut)</label>
-                    <p class="config-hint">Utilisé quand aucun numéro de tome n'est détecté.</p>
+                    <label class="config-label" data-i18n="config.template_no_tome">Template sans tome (par d&#233;faut)</label>
+                    <p class="config-hint" data-i18n="config.template_no_tome_hint">Utilis&#233; quand aucun num&#233;ro de tome n'est d&#233;tect&#233;.</p>
                     <div class="config-input-row">
                         <input type="text" id="config-template-no-tome" placeholder="{series}{ext}" class="config-input">
                     </div>
                 </div>
 
                 <div class="config-section">
-                    <label class="config-label">Règles de template par destination</label>
-                    <p class="config-hint">Appliquer un template différent selon le chemin de destination. Le filtre est cherché dans le chemin (ex: <code>manga</code> matchera <code>/nas/books/manga</code>).</p>
+                    <label class="config-label" data-i18n="config.rules">R&#232;gles de template par destination</label>
+                    <p class="config-hint" data-i18n="config.rules_hint">Appliquer un template diff&#233;rent selon le chemin de destination. Le filtre est cherch&#233; dans le chemin.</p>
                     <ul id="config-rules-list" class="config-dest-list"></ul>
                     <div class="config-rule-add">
                         <div class="config-input-row">
-                            <input type="text" id="config-new-rule-filter" placeholder="Filtre (ex: manga)" class="config-input config-input-sm">
-                            <input type="text" id="config-new-rule-template" placeholder="Template (ex: {series} T{tome:02d}{ext})" class="config-input">
+                            <input type="text" id="config-new-rule-filter" data-i18n-placeholder="config.rule_filter_placeholder" placeholder="Filtre (ex: manga)" class="config-input config-input-sm">
+                            <input type="text" id="config-new-rule-template" data-i18n-placeholder="config.rule_template_placeholder" placeholder="Template (ex: {series} T{tome:02d}{ext})" class="config-input">
                         </div>
                         <div class="config-input-row" style="margin-top:0.35rem">
-                            <input type="text" id="config-new-rule-no-tome" placeholder="Template sans tome (optionnel)" class="config-input">
-                            <button id="btn-add-rule" type="button" class="btn-config-add">Ajouter</button>
+                            <input type="text" id="config-new-rule-no-tome" data-i18n-placeholder="config.rule_no_tome_placeholder" placeholder="Template sans tome (optionnel)" class="config-input">
+                            <button id="btn-add-rule" type="button" class="btn-config-add" data-i18n="config.btn_add">Ajouter</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="config-actions">
-                    <button id="btn-save-config" type="button">Sauvegarder</button>
+                    <button id="btn-save-config" type="button" data-i18n="config.btn_save">Sauvegarder</button>
                 </div>
             </div>
         </section>
@@ -185,18 +195,18 @@
         <section id="view-history" style="display:none">
             <div class="history-panel">
                 <div class="history-header">
-                    <h2>Historique des actions</h2>
+                    <h2 data-i18n="history.title">Historique des actions</h2>
                     <div class="history-controls">
                         <select id="history-filter-action" class="filter-select">
-                            <option value="">Toutes les actions</option>
-                            <option value="organize">Organiser</option>
-                            <option value="organize_batch">Organiser (batch)</option>
-                            <option value="delete">Supprimer</option>
-                            <option value="undelete">Restaurer</option>
-                            <option value="fix_naming">Correction nommage</option>
-                            <option value="convert">Convertir CBR</option>
+                            <option value="" data-i18n="history.filter.all">Toutes les actions</option>
+                            <option value="organize" data-i18n="history.filter.organize">Organiser</option>
+                            <option value="organize_batch" data-i18n="history.filter.organize_batch">Organiser (batch)</option>
+                            <option value="delete" data-i18n="history.filter.delete">Supprimer</option>
+                            <option value="undelete" data-i18n="history.filter.undelete">Restaurer</option>
+                            <option value="fix_naming" data-i18n="history.filter.fix_naming">Correction nommage</option>
+                            <option value="convert" data-i18n="history.filter.convert">Convertir CBR</option>
                         </select>
-                        <button id="btn-refresh-history" type="button" class="btn-config-add">Rafraîchir</button>
+                        <button id="btn-refresh-history" type="button" class="btn-config-add" data-i18n="history.btn.refresh">Rafra&#238;chir</button>
                     </div>
                 </div>
 
@@ -204,14 +214,14 @@
                     <table class="history-table">
                         <thead>
                             <tr>
-                                <th class="col-history-time">Date</th>
-                                <th class="col-history-action">Action</th>
-                                <th class="col-history-detail">Détail</th>
-                                <th class="col-history-series">Série</th>
+                                <th class="col-history-time" data-i18n="history.col.date">Date</th>
+                                <th class="col-history-action" data-i18n="history.col.action">Action</th>
+                                <th class="col-history-detail" data-i18n="history.col.detail">D&#233;tail</th>
+                                <th class="col-history-series" data-i18n="history.col.series">S&#233;rie</th>
                             </tr>
                         </thead>
                         <tbody id="history-tbody">
-                            <tr class="empty-row"><td colspan="4">Aucune action enregistrée</td></tr>
+                            <tr class="empty-row"><td colspan="4" data-i18n="history.empty">Aucune action enregistr&#233;e</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -222,27 +232,27 @@
         <section id="view-audit" style="display:none">
             <div class="audit-panel">
                 <div class="audit-header">
-                    <h2>Audit de la collection</h2>
-                    <button id="btn-run-audit" type="button" class="btn-config-add">Lancer l'audit</button>
+                    <h2 data-i18n="audit.title">Audit de la collection</h2>
+                    <button id="btn-run-audit" type="button" class="btn-config-add" data-i18n="audit.btn.run">Lancer l'audit</button>
                 </div>
 
                 <div class="audit-loader" id="audit-loader" style="display:none">
                     <div class="audit-loader-bar"></div>
-                    <p class="audit-loader-text">Analyse de la collection en cours...</p>
+                    <p class="audit-loader-text" data-i18n="audit.loading">Analyse de la collection en cours...</p>
                 </div>
 
                 <div class="audit-summary" id="audit-summary"></div>
 
                 <div class="audit-controls" id="audit-controls" style="display:none">
-                    <input type="text" id="audit-search" placeholder="Rechercher une série..." class="audit-search-input">
+                    <input type="text" id="audit-search" data-i18n-placeholder="audit.search_placeholder" placeholder="Rechercher une s&#233;rie..." class="audit-search-input">
                     <select id="audit-filter" class="filter-select">
-                        <option value="all">Toutes les séries</option>
-                        <option value="issues">Avec problèmes</option>
-                        <option value="gaps">Tomes manquants</option>
-                        <option value="naming">Nommage incorrect</option>
-                        <option value="duplicates">Tomes dupliqués</option>
-                        <option value="empty">Dossiers vides</option>
-                        <option value="single">Fichier unique</option>
+                        <option value="all" data-i18n="audit.filter.all">Toutes les s&#233;ries</option>
+                        <option value="issues" data-i18n="audit.filter.issues">Avec probl&#232;mes</option>
+                        <option value="gaps" data-i18n="audit.filter.gaps">Tomes manquants</option>
+                        <option value="naming" data-i18n="audit.filter.naming">Nommage incorrect</option>
+                        <option value="duplicates" data-i18n="audit.filter.duplicates">Tomes dupliqu&#233;s</option>
+                        <option value="empty" data-i18n="audit.filter.empty">Dossiers vides</option>
+                        <option value="single" data-i18n="audit.filter.single">Fichier unique</option>
                     </select>
                 </div>
 
@@ -251,15 +261,15 @@
                         <thead>
                             <tr>
                                 <th class="col-audit-expand"></th>
-                                <th class="col-audit-series">Série</th>
-                                <th class="col-audit-dest">Destination</th>
-                                <th class="col-audit-count">Fichiers</th>
-                                <th class="col-audit-missing">Manquants</th>
-                                <th class="col-audit-issues">Problèmes</th>
+                                <th class="col-audit-series" data-i18n="audit.col.series">S&#233;rie</th>
+                                <th class="col-audit-dest" data-i18n="audit.col.destination">Destination</th>
+                                <th class="col-audit-count" data-i18n="audit.col.files">Fichiers</th>
+                                <th class="col-audit-missing" data-i18n="audit.col.missing">Manquants</th>
+                                <th class="col-audit-issues" data-i18n="audit.col.issues">Probl&#232;mes</th>
                             </tr>
                         </thead>
                         <tbody id="audit-tbody">
-                            <tr class="empty-row"><td colspan="6">Lancez un audit pour analyser votre collection</td></tr>
+                            <tr class="empty-row"><td colspan="6" data-i18n="audit.empty_initial">Lancez un audit pour analyser votre collection</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -270,26 +280,26 @@
         <section id="view-convert" style="display:none">
             <div class="convert-panel">
                 <div class="convert-header">
-                    <h2>Convertir CBR &rarr; CBZ</h2>
+                    <h2 data-i18n="convert.title">Convertir CBR &rarr; CBZ</h2>
                 </div>
 
                 <div class="convert-controls">
                     <div class="convert-path-wrap">
-                        <label class="config-label">Dossier à scanner</label>
+                        <label class="config-label" data-i18n="convert.dir_label">Dossier &#224; scanner</label>
                         <div class="convert-path-input-wrap">
-                            <input type="text" id="convert-path" placeholder="/chemin/vers/dossier" class="config-input" autocomplete="off">
+                            <input type="text" id="convert-path" data-i18n-placeholder="convert.dir_placeholder" placeholder="/chemin/vers/dossier" class="config-input" autocomplete="off">
                             <div class="convert-path-suggestions" id="convert-path-suggestions"></div>
                         </div>
-                        <button id="btn-scan-cbr" type="button" class="btn-config-add">Scanner</button>
+                        <button id="btn-scan-cbr" type="button" class="btn-config-add" data-i18n="convert.btn.scan">Scanner</button>
                     </div>
                     <div class="convert-options">
-                        <label><input type="checkbox" id="convert-delete-original"> Supprimer les CBR après conversion</label>
+                        <label><input type="checkbox" id="convert-delete-original"> <span data-i18n="convert.delete_original">Supprimer les CBR apr&#232;s conversion</span></label>
                     </div>
                 </div>
 
                 <div class="convert-progress" id="convert-progress" style="display:none">
                     <div class="audit-loader-bar"></div>
-                    <p id="convert-progress-text">Conversion en cours...</p>
+                    <p id="convert-progress-text" data-i18n="convert.progress">Conversion en cours...</p>
                 </div>
 
                 <div class="convert-table-wrap">
@@ -297,20 +307,20 @@
                         <thead>
                             <tr>
                                 <th class="col-check"><input type="checkbox" id="convert-select-all"></th>
-                                <th>Fichier</th>
-                                <th>Tome</th>
-                                <th>Taille</th>
-                                <th>Statut</th>
+                                <th data-i18n="convert.col.file">Fichier</th>
+                                <th data-i18n="convert.col.tome">Tome</th>
+                                <th data-i18n="convert.col.size">Taille</th>
+                                <th data-i18n="convert.col.status">Statut</th>
                             </tr>
                         </thead>
                         <tbody id="convert-tbody">
-                            <tr class="empty-row"><td colspan="5">Entrez un chemin et scannez pour trouver les fichiers CBR</td></tr>
+                            <tr class="empty-row"><td colspan="5" data-i18n="convert.empty">Entrez un chemin et scannez pour trouver les fichiers CBR</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div class="convert-actions">
-                    <button id="btn-convert" type="button" disabled>Convertir la sélection</button>
+                    <button id="btn-convert" type="button" disabled data-i18n="convert.btn.convert">Convertir la s&#233;lection</button>
                 </div>
             </div>
         </section>
@@ -318,6 +328,7 @@
         <div class="toast-container" id="toast-container"></div>
     </main>
 
+    <script src="{{ url_for('static', filename='i18n.js') }}"></script>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

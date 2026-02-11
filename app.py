@@ -14,6 +14,12 @@ from unidecode import unidecode
 
 app = Flask(__name__)
 
+
+@app.errorhandler(500)
+def internal_error(e):
+    return jsonify({"error": "Internal server error"}), 500
+
+
 CONFIG_PATH = Path(__file__).parent / "config.json"
 
 DEFAULT_CONFIG = {
@@ -22,12 +28,28 @@ DEFAULT_CONFIG = {
     "template": "{series} - T{tome:02d}{ext}",
     "template_no_tome": "{series}{ext}",
     "template_rules": [],  # [{filter: "manga", template: "...", template_no_tome: "..."}]
+    "lang": "fr",
 }
+
+INVALID_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*\x00]')
 
 EXTENSIONS = {".cbr", ".cbz", ".pdf"}
 
 HISTORY_PATH = Path(__file__).parent / "history.json"
 HISTORY_MAX_ENTRIES = 500
+
+# Pre-compiled regex patterns for tome detection
+_RE_BRACKETS = re.compile(r"\[.*?\]")
+_RE_PARENS = re.compile(r"\(.*?\)")
+_RE_DIGITAL = re.compile(r"(?i)digital[- ]?\d+")
+TOME_PATTERNS = [
+    re.compile(r"(?i)\btome[\s._-]*(\d+)"),
+    re.compile(r"(?i)(?<![a-z])T[\s._-]?(\d{1,3})(?!\d)"),
+    re.compile(r"(?i)\bvol(?:ume)?[\s._-]*(\d+)"),
+    re.compile(r"(?i)\bv[\s._](\d+)"),
+    re.compile(r"#(\d+)"),
+    re.compile(r"(?:^|[\s._\-])(\d{1,3})(?:[\s._\-]|$)"),
+]
 
 
 def load_config() -> dict:
@@ -61,23 +83,12 @@ def detect_tome(filename: str) -> int | None:
     name = Path(filename).stem
 
     # Strip bracket/paren metadata before detection to avoid false positives
-    # e.g. [Digital-1920px], (2025), [NEO RIP-Club]
-    cleaned = re.sub(r"\[.*?\]", "", name)
-    cleaned = re.sub(r"\(.*?\)", "", cleaned)
-    # Remove "Digital-NNNN" patterns
-    cleaned = re.sub(r"(?i)digital[- ]?\d+", "", cleaned)
+    cleaned = _RE_BRACKETS.sub("", name)
+    cleaned = _RE_PARENS.sub("", cleaned)
+    cleaned = _RE_DIGITAL.sub("", cleaned)
 
-    patterns = [
-        r"(?i)\btome[\s._-]*(\d+)",        # Tome 12, Tome.12, Tome-12
-        r"(?i)(?<![a-z])T[\s._-]?(\d{1,3})(?!\d)", # T12, T.12 (max 3 digits, not part of word)
-        r"(?i)\bvol(?:ume)?[\s._-]*(\d+)",  # Vol.12, Vol 12, Volume 12
-        r"(?i)\bv[\s._](\d+)",             # v12, v.12
-        r"#(\d+)",                          # #12
-        r"(?:^|[\s._\-])(\d{1,3})(?:[\s._\-]|$)",  # nombre isolé (max 3 digits)
-    ]
-
-    for pattern in patterns:
-        match = re.search(pattern, cleaned)
+    for pattern in TOME_PATTERNS:
+        match = pattern.search(cleaned)
         if match:
             return int(match.group(1))
 
@@ -621,6 +632,9 @@ def api_organize_matched():
         if not series_name or not destination:
             results.append({"source": source_name, "error": "Série ou destination manquante"})
             continue
+        if len(series_name) > 255 or INVALID_FILENAME_CHARS.search(series_name):
+            results.append({"source": source_name, "error": "Nom de série invalide"})
+            continue
         if destination not in cfg["destinations"]:
             results.append({"source": source_name, "error": "Destination non autorisée"})
             continue
@@ -671,6 +685,8 @@ def api_organize():
 
     if not series_name:
         return jsonify({"error": "Nom de série requis"}), 400
+    if len(series_name) > 255 or INVALID_FILENAME_CHARS.search(series_name):
+        return jsonify({"error": "Nom de série invalide"}), 400
     if not destination:
         return jsonify({"error": "Destination requise"}), 400
     if not files:
@@ -824,12 +840,17 @@ def api_save_config():
             return jsonify({"error": f"Règle \"{filt}\" : le template doit contenir {{series}} et {{ext}}"}), 400
         clean_rules.append({"filter": filt, "template": rtpl, "template_no_tome": rtpl_nt or template_no_tome})
 
+    lang = data.get("lang", "fr")
+    if lang not in ("fr", "en"):
+        lang = "fr"
+
     cfg = {
         "source_dir": source_dir,
         "destinations": destinations,
         "template": template,
         "template_no_tome": template_no_tome,
         "template_rules": clean_rules,
+        "lang": lang,
     }
     save_config(cfg)
     invalidate_series_cache()
@@ -930,4 +951,6 @@ def api_convert():
 
 if __name__ == "__main__":
     debug = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
-    app.run(host="0.0.0.0", port=9045, debug=debug)
+    host = os.environ.get("TANA_HOST", "0.0.0.0")
+    port = int(os.environ.get("TANA_PORT", "9045"))
+    app.run(host=host, port=port, debug=debug)

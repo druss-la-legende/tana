@@ -1,0 +1,11 @@
+{
+  "source_dir": "/path/to/incoming",
+  "destinations": [
+    "/path/to/manga",
+    "/path/to/bd"
+  ],
+  "template": "{series} - T{tome:02d}{ext}",
+  "template_no_tome": "{series}{ext}",
+  "template_rules": [],
+  "lang": "fr"
+}

@@ -12,7 +12,7 @@ btnTheme.addEventListener("click", () => {
 });
 
 // ─── CONFIG STATE ──────────────────────────────────────
-let appConfig = { source_dir: "", destinations: [], template: "", template_no_tome: "", template_rules: [] };
+let appConfig = { source_dir: "", destinations: [], template: "", template_no_tome: "", template_rules: [], lang: "fr" };
 
 // ─── DOM REFS (files view) ─────────────────────────────
 const selectAll = document.getElementById("select-all");
@@ -42,6 +42,7 @@ const configNewRuleFilter = document.getElementById("config-new-rule-filter");
 const configNewRuleTemplate = document.getElementById("config-new-rule-template");
 const configNewRuleNoTome = document.getElementById("config-new-rule-no-tome");
 const btnAddRule = document.getElementById("btn-add-rule");
+const configLang = document.getElementById("config-lang");
 
 // ─── DOM REFS (navigation) ─────────────────────────────
 const navTabs = document.querySelectorAll(".nav-tab");
@@ -84,11 +85,25 @@ let auditSearch = "";
 let historyData = [];
 let historyFilterAction = "";
 
+// ─── LANGUAGE ─────────────────────────────────────────
+configLang.addEventListener("change", () => {
+    setLang(configLang.value);
+    // Re-render dynamic content
+    renderFiles();
+    if (auditData) {
+        renderAuditSummary();
+        renderAuditTable();
+    }
+    renderHistory();
+    renderConvertTable();
+    updateConvertButton();
+});
+
 // ─── NAVIGATION ────────────────────────────────────────
 navTabs.forEach((tab) => {
     tab.addEventListener("click", () => {
         const view = tab.dataset.view;
-        navTabs.forEach((t) => t.classList.remove("active"));
+        navTabs.forEach((t2) => t2.classList.remove("active"));
         tab.classList.add("active");
 
         document.querySelectorAll("main > section[id^='view-']").forEach((s) => {
@@ -105,15 +120,18 @@ navTabs.forEach((tab) => {
 async function loadConfig() {
     try {
         const res = await fetch("/api/config");
+        if (!res.ok) throw new Error(res.status);
         appConfig = await res.json();
+        // Apply language from config
+        const lang = appConfig.lang || localStorage.getItem("tana_lang") || "fr";
+        setLang(lang);
     } catch {
-        showToast("Erreur lors du chargement de la configuration", "error");
+        showToast(t("config.error.load"), "error");
     }
 }
 
 function populateDestinations() {
-    // Keep the first "-- Choisir --" option, replace the rest
-    destination.innerHTML = `<option value="">-- Choisir --</option>`;
+    destination.innerHTML = `<option value="">${t("action.choose")}</option>`;
     appConfig.destinations.forEach((dest) => {
         const label = dest.split("/").pop();
         const opt = document.createElement("option");
@@ -128,6 +146,7 @@ function loadConfigUI() {
     configSource.value = appConfig.source_dir;
     configTemplate.value = appConfig.template || "{series} - T{tome:02d}{ext}";
     configTemplateNoTome.value = appConfig.template_no_tome || "{series}{ext}";
+    configLang.value = appConfig.lang || "fr";
     if (!appConfig.template_rules) appConfig.template_rules = [];
     renderDestList();
     renderRulesList();
@@ -145,7 +164,7 @@ function renderRulesList() {
                 <span class="config-rule-tpl">${escHtml(rule.template)}</span>
                 ${rule.template_no_tome ? `<span class="config-rule-tpl-nt">${escHtml(rule.template_no_tome)}</span>` : ""}
             </div>
-            <button class="btn-dest-remove" type="button" data-rule-index="${i}" title="Supprimer">&times;</button>
+            <button class="btn-dest-remove" type="button" data-rule-index="${i}" title="${t("config.delete")}">&times;</button>
         `;
         configRulesList.appendChild(li);
     });
@@ -163,8 +182,8 @@ btnAddRule.addEventListener("click", () => {
     const filter = configNewRuleFilter.value.trim();
     const template = configNewRuleTemplate.value.trim();
     const noTome = configNewRuleNoTome.value.trim();
-    if (!filter) { showToast("Le filtre est requis", "error"); return; }
-    if (!template) { showToast("Le template est requis", "error"); return; }
+    if (!filter) { showToast(t("config.error.filter_required"), "error"); return; }
+    if (!template) { showToast(t("config.error.template_required"), "error"); return; }
     if (!appConfig.template_rules) appConfig.template_rules = [];
     appConfig.template_rules.push({ filter, template, template_no_tome: noTome });
     configNewRuleFilter.value = "";
@@ -182,6 +201,7 @@ async function updateTemplatePreview() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ template, series: "One Piece", tome: 5, ext: ".cbz" }),
         });
+        if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         templatePreview.textContent = data.preview || "";
     } catch { templatePreview.textContent = ""; }
@@ -197,7 +217,7 @@ function renderDestList() {
         li.className = "config-dest-item";
         li.innerHTML = `
             <span class="config-dest-path">${escHtml(dest)}</span>
-            <button class="btn-dest-remove" type="button" data-index="${i}" title="Supprimer">&times;</button>
+            <button class="btn-dest-remove" type="button" data-index="${i}" title="${t("config.delete")}">&times;</button>
         `;
         configDestList.appendChild(li);
     });
@@ -215,7 +235,7 @@ btnAddDest.addEventListener("click", () => {
     const val = configNewDest.value.trim();
     if (!val) return;
     if (appConfig.destinations.includes(val)) {
-        showToast("Ce dossier est déjà dans la liste", "error");
+        showToast(t("config.error.duplicate_dest"), "error");
         return;
     }
     appConfig.destinations.push(val);
@@ -230,16 +250,16 @@ configNewDest.addEventListener("keydown", (e) => {
 btnSaveConfig.addEventListener("click", async () => {
     const sourceDir = configSource.value.trim();
     if (!sourceDir) {
-        showToast("Le dossier source est requis", "error");
+        showToast(t("config.error.source_required"), "error");
         return;
     }
     if (appConfig.destinations.length === 0) {
-        showToast("Au moins une destination est requise", "error");
+        showToast(t("config.error.dest_required"), "error");
         return;
     }
 
     btnSaveConfig.disabled = true;
-    btnSaveConfig.textContent = "En cours...";
+    btnSaveConfig.textContent = t("action.in_progress");
 
     try {
         const res = await fetch("/api/config", {
@@ -251,8 +271,10 @@ btnSaveConfig.addEventListener("click", async () => {
                 template: configTemplate.value.trim(),
                 template_no_tome: configTemplateNoTome.value.trim(),
                 template_rules: appConfig.template_rules || [],
+                lang: configLang.value,
             }),
         });
+        if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         if (data.error) {
             showToast(data.error, "error");
@@ -260,12 +282,12 @@ btnSaveConfig.addEventListener("click", async () => {
         }
         appConfig = data.config;
         populateDestinations();
-        showToast("Configuration sauvegardée", "success");
+        showToast(t("config.saved"), "success");
     } catch {
-        showToast("Erreur lors de la sauvegarde", "error");
+        showToast(t("config.error.save"), "error");
     } finally {
         btnSaveConfig.disabled = false;
-        btnSaveConfig.textContent = "Sauvegarder";
+        btnSaveConfig.textContent = t("config.btn_save");
     }
 });
 
@@ -276,11 +298,12 @@ async function scanFiles() {
 
     try {
         const res = await fetch(`/api/files?source=${encodeURIComponent(source)}`);
+        if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         filesData = data.files;
         renderFiles();
     } catch {
-        showToast("Erreur lors du scan", "error");
+        showToast(t("scan.error"), "error");
     }
 }
 
@@ -313,11 +336,12 @@ function buildFileRow(f, i, extraClass = "") {
         : `<button class="btn-add-to" type="button" data-index="${i}" style="display:none"></button>`;
 
     const confClass = isHighConf ? "match-high" : (isSuggestion ? "match-suggestion" : "match-none");
+    const pct = Math.round(score * 100);
     const confBadge = isHighConf
-        ? `<span class="conf-badge conf-high" title="Match ${Math.round(score * 100)}%">&#10003;</span>`
+        ? `<span class="conf-badge conf-high" title="${t("files.match_pct", { pct })}">&#10003;</span>`
         : (isSuggestion
-            ? `<span class="conf-badge conf-suggest" title="Suggestion ${Math.round(score * 100)}%">?</span>`
-            : `<span class="conf-badge conf-none" title="Pas de match">&#x2015;</span>`);
+            ? `<span class="conf-badge conf-suggest" title="${t("files.suggestion_pct", { pct })}">?</span>`
+            : `<span class="conf-badge conf-none" title="${t("files.no_match")}">&#x2015;</span>`);
 
     return `<tr data-index="${i}" class="${confClass}${extraClass ? " " + extraClass : ""}">
         <td class="col-check"><input type="checkbox" class="file-check" data-index="${i}"></td>
@@ -326,23 +350,21 @@ function buildFileRow(f, i, extraClass = "") {
         <td class="col-search-ext">${guess ? `<a class="btn-ext-search" href="https://www.nautiljon.com/search.php?q=${encodeURIComponent(guess)}" target="_blank" rel="noopener" title="Nautiljon"><span class="ext-label">N</span></a><a class="btn-ext-search" href="https://www.manga-news.com/index.php/recherche/?q=${encodeURIComponent(guess)}" target="_blank" rel="noopener" title="Manga-News"><span class="ext-label">M</span></a>` : ""}</td>
         <td class="col-match">
             <div class="series-search-wrap">
-                <input type="text" class="series-search" data-index="${i}" value="${escHtml(searchVal)}" placeholder="Rechercher..." autocomplete="off">
+                <input type="text" class="series-search" data-index="${i}" value="${escHtml(searchVal)}" placeholder="${t("files.search_placeholder")}" autocomplete="off">
                 <div class="series-dropdown" data-index="${i}"></div>
                 ${btnHtml}
             </div>
         </td>
         <td class="col-tome">${tomeDisplay}</td>
-        <td class="col-title"><input type="text" class="title-input" data-index="${i}" value="" placeholder="Titre (optionnel)" autocomplete="off"></td>
+        <td class="col-title"><input type="text" class="title-input" data-index="${i}" value="" placeholder="${t("files.title_placeholder")}" autocomplete="off"></td>
         <td class="col-size">${f.size_human}</td>
-        <td class="col-actions"><button class="btn-delete" type="button" data-index="${i}" title="Supprimer ${escHtml(f.name)}">&#x2715;</button></td>
+        <td class="col-actions"><button class="btn-delete" type="button" data-index="${i}" title="${t("config.delete")} ${escHtml(f.name)}">&#x2715;</button></td>
     </tr>`;
 }
 
 function getDisplayFiles() {
-    // Build array of {file, index} preserving original indices, then filter and sort
     let items = filesData.map((f, i) => ({ file: f, index: i }));
 
-    // Apply filter
     if (filterMatch === "matched") {
         items = items.filter(({ file: f }) => f.series_match && (f.match_score || 0) >= 0.9);
     } else if (filterMatch === "suggested") {
@@ -351,7 +373,6 @@ function getDisplayFiles() {
         items = items.filter(({ file: f }) => !f.series_match);
     }
 
-    // Apply sort
     if (sortField) {
         const dir = sortDir === "asc" ? 1 : -1;
         items.sort((a, b) => {
@@ -373,25 +394,30 @@ function getDisplayFiles() {
 }
 
 function renderFiles() {
-    // Preserve scroll position across re-renders
     const tableWrap = document.querySelector(".file-table-wrap");
     const scrollTop = tableWrap ? tableWrap.scrollTop : 0;
 
     if (filesData.length === 0) {
-        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="9">Aucun fichier CBR/CBZ/PDF trouvé</td></tr>`;
-        fileCount.textContent = "0 fichier";
+        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="9">${t("files.empty")}</td></tr>`;
+        fileCount.textContent = t("files.count", { count: 0 });
         return;
     }
 
     const displayItems = getDisplayFiles();
     const total = filesData.length;
     const shown = displayItems.length;
-    fileCount.textContent = filterMatch !== "all" && shown !== total
-        ? `${shown} / ${total} fichier${total > 1 ? "s" : ""}`
-        : `${total} fichier${total > 1 ? "s" : ""}`;
+    if (filterMatch !== "all" && shown !== total) {
+        fileCount.textContent = total > 1
+            ? t("files.count_filtered_plural", { shown, total })
+            : t("files.count_filtered", { shown, total });
+    } else {
+        fileCount.textContent = total > 1
+            ? t("files.count_plural", { count: total })
+            : t("files.count", { count: total });
+    }
 
     if (displayItems.length === 0) {
-        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="9">Aucun fichier ne correspond au filtre</td></tr>`;
+        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="9">${t("files.empty_filter")}</td></tr>`;
         selectAll.checked = false;
         updatePreview();
         btnOrganizeMatched.style.display = "none";
@@ -403,21 +429,18 @@ function renderFiles() {
     displayItems.forEach(({ file: f, index: i }) => {
         const key = (f.series_guess || "").toLowerCase().trim() || "__ungrouped__";
         if (!groups.has(key)) {
-            groups.set(key, { label: f.series_guess || "Sans série détectée", files: [] });
+            groups.set(key, { label: f.series_guess || t("files.no_series"), files: [] });
         }
         groups.get(key).files.push({ file: f, index: i });
     });
 
-    // Single-file groups don't need a header — flatten if only one group or all single-file groups
     const multiFileGroups = [...groups.values()].filter((g) => g.files.length > 1);
     const useGrouping = multiFileGroups.length > 0 && groups.size > 1;
 
-    // Sort groups themselves when a sort field is active
     let sortedGroups = [...groups.entries()];
     if (useGrouping && sortField) {
         const dir = sortDir === "asc" ? 1 : -1;
         sortedGroups.sort(([, a], [, b]) => {
-            // Sort groups by the first file's sort key value
             const fa = a.files[0].file, fb = b.files[0].file;
             let va, vb;
             switch (sortField) {
@@ -438,7 +461,6 @@ function renderFiles() {
         let groupIdx = 0;
         for (const [key, group] of sortedGroups) {
             const indices = group.files.map((f) => f.index);
-            // Spacer row between groups (not before the first)
             if (groupIdx > 0) {
                 html += `<tr class="group-spacer"><td colspan="9"></td></tr>`;
             }
@@ -466,16 +488,14 @@ function renderFiles() {
     selectAll.checked = false;
     updatePreview();
 
-    // Show/hide batch organize button (high-confidence matches only, score >= 0.9)
     const matchedCount = filesData.filter((f) => f.series_match && (f.match_score || 0) >= 0.9).length;
     if (matchedCount > 0) {
-        btnOrganizeMatched.textContent = `Organiser les ${matchedCount} matchés`;
+        btnOrganizeMatched.textContent = t("files.organize_n_matched", { count: matchedCount });
         btnOrganizeMatched.style.display = "inline-flex";
     } else {
         btnOrganizeMatched.style.display = "none";
     }
 
-    // Restore scroll position
     if (tableWrap) tableWrap.scrollTop = scrollTop;
 }
 
@@ -489,7 +509,6 @@ fileTbody.addEventListener("input", (e) => {
     const idx = input.dataset.index;
     const query = input.value.trim();
 
-    // Hide add button when typing
     const wrap = input.closest(".series-search-wrap");
     const addBtn = wrap.querySelector(".btn-add-to");
     addBtn.style.display = "none";
@@ -508,9 +527,10 @@ fileTbody.addEventListener("input", (e) => {
     searchTimeout = setTimeout(async () => {
         try {
             const res = await fetch(`/api/search-series?q=${encodeURIComponent(query)}`);
+            if (!res.ok) throw new Error(res.status);
             const data = await res.json();
             if (data.results.length === 0) {
-                dropdown.innerHTML = `<div class="dropdown-empty">Aucune série trouvée</div>`;
+                dropdown.innerHTML = `<div class="dropdown-empty">${t("scan.no_series")}</div>`;
             } else {
                 dropdown.innerHTML = data.results.map((r) =>
                     `<div class="dropdown-item" data-name="${escHtml(r.name)}" data-dest="${escHtml(r.destination)}">
@@ -586,7 +606,6 @@ fileTbody.addEventListener("click", (e) => {
     dropdown.innerHTML = "";
     dropdown.classList.remove("open");
 
-    // Show add button
     addBtn.dataset.series = name;
     addBtn.dataset.dest = dest;
     addBtn.textContent = `+ ${destLabel}`;
@@ -610,14 +629,13 @@ selectAll.addEventListener("change", () => {
         cb.checked = selectAll.checked;
         cb.closest("tr").classList.toggle("selected", selectAll.checked);
     });
-    // Sync group checkboxes
     document.querySelectorAll(".group-check").forEach((gc) => {
         gc.checked = selectAll.checked;
     });
     updatePreview();
 });
 
-// Group checkbox — select all files in the group
+// Group checkbox
 fileTbody.addEventListener("change", (e) => {
     if (!e.target.classList.contains("group-check")) return;
     const indices = e.target.dataset.groupIndices.split(",").map(Number);
@@ -632,7 +650,7 @@ fileTbody.addEventListener("change", (e) => {
     autoFillFromSelection();
 });
 
-// "Add to" button — directly move file to existing series
+// "Add to" button
 fileTbody.addEventListener("click", async (e) => {
     const btn = e.target.closest(".btn-add-to");
     if (!btn || btn.disabled) return;
@@ -648,7 +666,6 @@ fileTbody.addEventListener("click", async (e) => {
     const title = titleInput ? titleInput.value.trim() : "";
     const source = appConfig.source_dir;
 
-    // Disable button during request
     const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = "...";
@@ -665,6 +682,7 @@ fileTbody.addEventListener("click", async (e) => {
                 files: [{ source: file.name, tome, title }],
             }),
         });
+        if (!res.ok) throw new Error(res.status);
 
         const data = await res.json();
 
@@ -675,15 +693,14 @@ fileTbody.addEventListener("click", async (e) => {
 
         const r = data.results[0];
         if (r.success) {
-            showToast(`${r.new_name} ajouté à ${serName}/`, "success");
-            // Remove row from data and re-render
+            showToast(t("organize.added", { name: r.new_name, series: serName }), "success");
             filesData.splice(idx, 1);
             renderFiles();
         } else if (r.error) {
             showToast(`${file.name}: ${r.error}`, "error");
         }
     } catch {
-        showToast("Erreur lors de l'ajout", "error");
+        showToast(t("organize.error.add"), "error");
     } finally {
         btn.disabled = false;
         btn.textContent = originalText;
@@ -710,6 +727,7 @@ fileTbody.addEventListener("click", async (e) => {
                 filename: file.name,
             }),
         });
+        if (!res.ok) throw new Error(res.status);
 
         const data = await res.json();
 
@@ -722,7 +740,7 @@ fileTbody.addEventListener("click", async (e) => {
 
         const deletedFile = filesData.splice(idx, 1)[0];
         renderFiles();
-        showUndoToast(`${file.name} supprimé`, async () => {
+        showUndoToast(t("delete.deleted", { name: file.name }), async () => {
             const r = await fetch("/api/undelete", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -733,14 +751,14 @@ fileTbody.addEventListener("click", async (e) => {
             });
             const d = await r.json();
             if (d.success) {
-                showToast(`${deletedFile.name} restauré`, "success");
+                showToast(t("delete.restored", { name: deletedFile.name }), "success");
                 await scanFiles();
             } else {
-                showToast(d.error || "Erreur lors de la restauration", "error");
+                showToast(d.error || t("delete.error.restore"), "error");
             }
         });
     } catch {
-        showToast("Erreur lors de la suppression", "error");
+        showToast(t("delete.error"), "error");
         btn.disabled = false;
         btn.textContent = "\u2715";
     }
@@ -770,9 +788,8 @@ function autoFillFromSelection() {
     const checked = document.querySelectorAll(".file-check:checked");
     if (checked.length === 0) return;
 
-    // Collect unique series matches and guesses from selected files
-    const matches = new Map(); // name → {name, dest, dest_label, count}
-    const guesses = new Map(); // guess → count
+    const matches = new Map();
+    const guesses = new Map();
 
     checked.forEach((cb) => {
         const idx = parseInt(cb.dataset.index);
@@ -789,14 +806,11 @@ function autoFillFromSelection() {
         }
     });
 
-    // If all selected share the same match, auto-fill both name and destination
     if (matches.size === 1) {
         const m = [...matches.values()][0];
         if (!seriesName.value.trim()) seriesName.value = m.name;
         if (!destination.value) destination.value = m.destination;
-    }
-    // Otherwise if all share the same guess, auto-fill just the name
-    else if (guesses.size === 1 && !seriesName.value.trim()) {
+    } else if (guesses.size === 1 && !seriesName.value.trim()) {
         seriesName.value = [...guesses.keys()][0];
     }
 
@@ -821,9 +835,10 @@ seriesName.addEventListener("input", () => {
     actionSearchTimeout = setTimeout(async () => {
         try {
             const res = await fetch(`/api/search-series?q=${encodeURIComponent(query)}`);
+            if (!res.ok) throw new Error(res.status);
             const data = await res.json();
             if (data.results.length === 0) {
-                actionDropdown.innerHTML = `<div class="dropdown-empty">Aucune série trouvée</div>`;
+                actionDropdown.innerHTML = `<div class="dropdown-empty">${t("scan.no_series")}</div>`;
             } else {
                 actionDropdown.innerHTML = data.results.map((r) =>
                     `<div class="dropdown-item" data-name="${escHtml(r.name)}" data-dest="${escHtml(r.destination)}">
@@ -885,7 +900,6 @@ actionDropdown.addEventListener("click", (e) => {
     updatePreview();
 });
 
-// Close action dropdown on outside click
 document.addEventListener("click", (e) => {
     if (!e.target.closest(".action-search-wrap")) {
         actionDropdown.innerHTML = "";
@@ -893,7 +907,6 @@ document.addEventListener("click", (e) => {
     }
 });
 
-// Update preview on destination change
 destination.addEventListener("change", updatePreview);
 
 function getSelectedFiles() {
@@ -923,7 +936,6 @@ function applyTemplateClient(template, series, tome, ext, title) {
     result = result.replace("{title}", title || "");
     result = result.replace("{ext}", ext.toLowerCase());
     result = result.replace("{EXT}", ext.toUpperCase());
-    // Clean up dangling separators if title is empty
     if (!title) {
         result = result.replace(/\s*-\s*-/g, " -");
         result = result.replace(/\s*-\s*\./g, ".");
@@ -945,7 +957,6 @@ function updatePreview() {
 
     let tpl = appConfig.template || "{series} - T{tome:02d}{ext}";
     let tplNoTome = appConfig.template_no_tome || "{series}{ext}";
-    // Check rules for selected destination
     const destLower = dest.toLowerCase();
     for (const rule of (appConfig.template_rules || [])) {
         if (rule.filter && destLower.includes(rule.filter.toLowerCase())) {
@@ -978,7 +989,7 @@ async function doOrganize(force = false) {
     if (!name || !dest || selected.length === 0) return;
 
     btnOrganize.disabled = true;
-    btnOrganize.textContent = "En cours...";
+    btnOrganize.textContent = t("action.in_progress");
 
     try {
         const res = await fetch("/api/organize", {
@@ -996,6 +1007,7 @@ async function doOrganize(force = false) {
                 })),
             }),
         });
+        if (!res.ok) throw new Error(res.status);
 
         const data = await res.json();
 
@@ -1004,13 +1016,12 @@ async function doOrganize(force = false) {
             return;
         }
 
-        // Warning: directory exists, ask for confirmation
         if (data.warning) {
             const existing = data.existing_files || [];
             const detail = existing.length > 0
-                ? `\n\nFichiers existants :\n- ${existing.slice(0, 10).join("\n- ")}${existing.length > 10 ? `\n... et ${existing.length - 10} autres` : ""}`
+                ? `\n\n${t("organize.confirm_existing")}\n- ${existing.slice(0, 10).join("\n- ")}${existing.length > 10 ? `\n${t("organize.confirm_more", { count: existing.length - 10 })}` : ""}`
                 : "";
-            if (confirm(`${data.warning}${detail}\n\nVoulez-vous continuer ?`)) {
+            if (confirm(`${data.warning}${detail}\n\n${t("organize.confirm_continue")}`)) {
                 await doOrganize(true);
             }
             return;
@@ -1020,21 +1031,20 @@ async function doOrganize(force = false) {
         const errors = data.results.filter((r) => r.error);
 
         if (successes.length > 0) {
-            showToast(`${successes.length} fichier${successes.length > 1 ? "s" : ""} organisé${successes.length > 1 ? "s" : ""} dans ${name}/`, "success");
+            showToast(t("organize.success", { count: successes.length, name }), "success");
         }
         if (errors.length > 0) {
             errors.forEach((e) => showToast(`${e.source}: ${e.error}`, "error"));
         }
 
-        // Refresh file list
         await scanFiles();
         seriesName.value = "";
         previewSection.style.display = "none";
     } catch {
-        showToast("Erreur lors de l'organisation", "error");
+        showToast(t("organize.error"), "error");
     } finally {
         btnOrganize.disabled = false;
-        btnOrganize.textContent = "Organiser les fichiers";
+        btnOrganize.textContent = t("action.btn_organize");
     }
 }
 
@@ -1043,7 +1053,7 @@ btnOrganize.addEventListener("click", () => doOrganize(false));
 function showUndoToast(message, onUndo) {
     const toast = document.createElement("div");
     toast.className = "toast success";
-    toast.innerHTML = `<span>${escHtml(message)}</span> <button class="btn-undo" type="button">Annuler</button>`;
+    toast.innerHTML = `<span>${escHtml(message)}</span> <button class="btn-undo" type="button">${t("delete.undo")}</button>`;
     toastContainer.appendChild(toast);
 
     const undoBtn = toast.querySelector(".btn-undo");
@@ -1082,10 +1092,10 @@ btnOrganizeMatched.addEventListener("click", async () => {
     const matched = filesData.filter((f) => f.series_match && (f.match_score || 0) >= 0.9);
     if (matched.length === 0) return;
 
-    if (!confirm(`Organiser ${matched.length} fichier${matched.length > 1 ? "s" : ""} automatiquement matchés ?`)) return;
+    if (!confirm(t("organize.batch_confirm", { count: matched.length }))) return;
 
     btnOrganizeMatched.disabled = true;
-    btnOrganizeMatched.textContent = "En cours...";
+    btnOrganizeMatched.textContent = t("action.in_progress");
 
     const items = matched.map((f) => ({
         source: f.name,
@@ -1103,6 +1113,7 @@ btnOrganizeMatched.addEventListener("click", async () => {
                 items,
             }),
         });
+        if (!res.ok) throw new Error(res.status);
 
         const data = await res.json();
 
@@ -1115,13 +1126,13 @@ btnOrganizeMatched.addEventListener("click", async () => {
         const errors = data.results.filter((r) => r.error);
 
         if (successes.length > 0) {
-            showToast(`${successes.length} fichier${successes.length > 1 ? "s" : ""} organisé${successes.length > 1 ? "s" : ""}`, "success");
+            showToast(t("organize.batch_success", { count: successes.length }), "success");
         }
         errors.forEach((e) => showToast(`${e.source}: ${e.error}`, "error"));
 
         await scanFiles();
     } catch {
-        showToast("Erreur lors de l'organisation batch", "error");
+        showToast(t("organize.batch_error"), "error");
     } finally {
         btnOrganizeMatched.disabled = false;
     }
@@ -1137,7 +1148,6 @@ document.querySelectorAll("th.sortable").forEach((th) => {
             sortField = field;
             sortDir = "asc";
         }
-        // Update header classes
         document.querySelectorAll("th.sortable").forEach((h) => {
             h.classList.remove("sort-asc", "sort-desc");
         });
@@ -1158,27 +1168,28 @@ async function loadHistory() {
         let url = "/api/history";
         if (historyFilterAction) url += `?action=${encodeURIComponent(historyFilterAction)}`;
         const res = await fetch(url);
+        if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         historyData = data.history;
         renderHistory();
     } catch {
-        showToast("Erreur lors du chargement de l'historique", "error");
+        showToast(t("history.error"), "error");
     }
 }
 
 function renderHistory() {
     if (historyData.length === 0) {
-        historyTbody.innerHTML = `<tr class="empty-row"><td colspan="4">Aucune action enregistrée</td></tr>`;
+        historyTbody.innerHTML = `<tr class="empty-row"><td colspan="4">${t("history.empty")}</td></tr>`;
         return;
     }
 
     const actionLabels = {
-        organize: "Organiser",
-        organize_batch: "Organiser (batch)",
-        delete: "Supprimer",
-        undelete: "Restaurer",
-        fix_naming: "Correction nommage",
-        convert: "Convertir CBR",
+        organize: t("history.action.organize"),
+        organize_batch: t("history.action.organize_batch"),
+        delete: t("history.action.delete"),
+        undelete: t("history.action.undelete"),
+        fix_naming: t("history.action.fix_naming"),
+        convert: t("history.action.convert"),
     };
 
     historyTbody.innerHTML = historyData.map((h) => {
@@ -1214,35 +1225,36 @@ btnRefreshHistory.addEventListener("click", loadHistory);
 // ─── AUDIT ──────────────────────────────────────────────
 async function runAudit() {
     btnRunAudit.disabled = true;
-    btnRunAudit.textContent = "Analyse en cours...";
+    btnRunAudit.textContent = t("audit.in_progress");
     auditLoader.style.display = "";
     auditSummary.innerHTML = "";
     auditTbody.innerHTML = "";
     auditControls.style.display = "none";
     try {
         const res = await fetch("/api/audit");
+        if (!res.ok) throw new Error(res.status);
         auditData = await res.json();
         auditControls.style.display = "flex";
         renderAuditSummary();
         renderAuditTable();
     } catch {
-        showToast("Erreur lors de l'audit", "error");
+        showToast(t("audit.error"), "error");
     } finally {
         auditLoader.style.display = "none";
         btnRunAudit.disabled = false;
-        btnRunAudit.textContent = "Relancer l'audit";
+        btnRunAudit.textContent = t("audit.btn.rerun");
     }
 }
 
 function renderAuditSummary() {
     const s = auditData.summary;
     auditSummary.innerHTML = `
-        <div class="audit-stat"><span class="audit-stat-value">${s.total_series}</span><span class="audit-stat-label">Séries</span></div>
-        <div class="audit-stat${s.series_with_gaps > 0 ? " audit-stat-warning" : ""}"><span class="audit-stat-value">${s.series_with_gaps}</span><span class="audit-stat-label">Tomes manquants</span></div>
-        <div class="audit-stat${s.series_with_naming_issues > 0 ? " audit-stat-warning" : ""}"><span class="audit-stat-value">${s.series_with_naming_issues}</span><span class="audit-stat-label">Nommage incorrect</span></div>
-        <div class="audit-stat"><span class="audit-stat-value">${s.empty_folders}</span><span class="audit-stat-label">Dossiers vides</span></div>
-        <div class="audit-stat"><span class="audit-stat-value">${s.single_file_series}</span><span class="audit-stat-label">Fichier unique</span></div>
-        <div class="audit-stat${s.duplicate_tomes > 0 ? " audit-stat-warning" : ""}"><span class="audit-stat-value">${s.duplicate_tomes}</span><span class="audit-stat-label">Tomes dupliqués</span></div>
+        <div class="audit-stat"><span class="audit-stat-value">${s.total_series}</span><span class="audit-stat-label">${t("audit.stat.series")}</span></div>
+        <div class="audit-stat${s.series_with_gaps > 0 ? " audit-stat-warning" : ""}"><span class="audit-stat-value">${s.series_with_gaps}</span><span class="audit-stat-label">${t("audit.stat.missing_tomes")}</span></div>
+        <div class="audit-stat${s.series_with_naming_issues > 0 ? " audit-stat-warning" : ""}"><span class="audit-stat-value">${s.series_with_naming_issues}</span><span class="audit-stat-label">${t("audit.stat.naming")}</span></div>
+        <div class="audit-stat"><span class="audit-stat-value">${s.empty_folders}</span><span class="audit-stat-label">${t("audit.stat.empty")}</span></div>
+        <div class="audit-stat"><span class="audit-stat-value">${s.single_file_series}</span><span class="audit-stat-label">${t("audit.stat.single")}</span></div>
+        <div class="audit-stat${s.duplicate_tomes > 0 ? " audit-stat-warning" : ""}"><span class="audit-stat-value">${s.duplicate_tomes}</span><span class="audit-stat-label">${t("audit.stat.duplicates")}</span></div>
     `;
 }
 
@@ -1268,22 +1280,22 @@ function renderAuditTable() {
     const series = getFilteredAuditSeries();
 
     if (series.length === 0) {
-        auditTbody.innerHTML = `<tr class="empty-row"><td colspan="6">Aucune série trouvée</td></tr>`;
+        auditTbody.innerHTML = `<tr class="empty-row"><td colspan="6">${t("audit.empty")}</td></tr>`;
         return;
     }
 
     let html = "";
     series.forEach((s, i) => {
         const issues = [];
-        if (s.missing_tomes.length) issues.push(`<span class="audit-badge audit-badge-gap">${s.missing_tomes.length} manquant${s.missing_tomes.length > 1 ? "s" : ""}</span>`);
-        if (s.naming_issues.length) issues.push(`<span class="audit-badge audit-badge-naming">${s.naming_issues.length} nommage</span>`);
-        if (s.duplicate_tomes.length) issues.push(`<span class="audit-badge audit-badge-dup">${s.duplicate_tomes.length} doublon${s.duplicate_tomes.length > 1 ? "s" : ""}</span>`);
+        if (s.missing_tomes.length) issues.push(`<span class="audit-badge audit-badge-gap">${t("audit.badge.missing", { count: s.missing_tomes.length })}</span>`);
+        if (s.naming_issues.length) issues.push(`<span class="audit-badge audit-badge-naming">${t("audit.badge.naming", { count: s.naming_issues.length })}</span>`);
+        if (s.duplicate_tomes.length) issues.push(`<span class="audit-badge audit-badge-dup">${t("audit.badge.duplicate", { count: s.duplicate_tomes.length })}</span>`);
         if (s.mixed_extensions) issues.push(`<span class="audit-badge audit-badge-ext">${s.extensions.join(", ")}</span>`);
-        if (s.is_empty) issues.push(`<span class="audit-badge audit-badge-empty">Vide</span>`);
-        if (!s.is_empty && s.file_count === 1) issues.push(`<span class="audit-badge audit-badge-single">1 fichier</span>`);
+        if (s.is_empty) issues.push(`<span class="audit-badge audit-badge-empty">${t("audit.badge.empty")}</span>`);
+        if (!s.is_empty && s.file_count === 1) issues.push(`<span class="audit-badge audit-badge-single">${t("audit.badge.single")}</span>`);
 
         const missingDisplay = s.missing_tomes.length > 0
-            ? `T${s.missing_tomes.map((t) => String(t).padStart(2, "0")).join(", T")}`
+            ? `T${s.missing_tomes.map((t2) => String(t2).padStart(2, "0")).join(", T")}`
             : "";
 
         html += `<tr class="audit-row${s.has_issues ? " audit-has-issues" : ""}" data-audit-index="${i}">
@@ -1312,8 +1324,8 @@ function renderAuditDetail(index) {
 
     if (s.naming_issues.length > 0) {
         html += `<div class="audit-detail-section">
-            <h4>Nommage incorrect</h4>
-            <button class="btn-fix-all-naming" data-dest="${escHtml(s.destination)}" data-series="${escHtml(s.series_name)}" type="button">Corriger tout</button>
+            <h4>${t("audit.detail.naming")}</h4>
+            <button class="btn-fix-all-naming" data-dest="${escHtml(s.destination)}" data-series="${escHtml(s.series_name)}" type="button">${t("audit.detail.fix_all")}</button>
             <ul class="audit-naming-list">`;
         s.naming_issues.forEach((issue) => {
             html += `<li>
@@ -1326,18 +1338,18 @@ function renderAuditDetail(index) {
     }
 
     if (s.missing_tomes.length > 0) {
-        html += `<div class="audit-detail-section"><h4>Tomes manquants</h4><p class="audit-missing-list">`;
-        html += s.missing_tomes.map((t) => `<span class="audit-missing-tome">T${String(t).padStart(2, "0")}</span>`).join(" ");
+        html += `<div class="audit-detail-section"><h4>${t("audit.detail.missing")}</h4><p class="audit-missing-list">`;
+        html += s.missing_tomes.map((t2) => `<span class="audit-missing-tome">T${String(t2).padStart(2, "0")}</span>`).join(" ");
         html += `</p></div>`;
     }
 
     if (s.duplicate_tomes.length > 0) {
-        html += `<div class="audit-detail-section"><h4>Tomes en double</h4><p>`;
+        html += `<div class="audit-detail-section"><h4>${t("audit.detail.duplicates")}</h4><p>`;
         html += s.duplicate_tomes.map((d) => `T${String(d.tome).padStart(2, "0")} (${d.count}x)`).join(", ");
         html += `</p></div>`;
     }
 
-    html += `<div class="audit-detail-section"><h4>Fichiers (${s.files.length})</h4><ul class="audit-file-list">`;
+    html += `<div class="audit-detail-section"><h4>${t("audit.detail.files", { count: s.files.length })}</h4><ul class="audit-file-list">`;
     s.files.forEach((f) => {
         html += `<li><span class="file-name">${escHtml(f.name)}</span> <span class="audit-file-size">${f.size_human}</span></li>`;
     });
@@ -1366,13 +1378,13 @@ auditTbody.addEventListener("click", (e) => {
     }
 });
 
-async function fixNaming(dest, seriesName) {
-    const s = auditData.series.find((x) => x.destination === dest && x.series_name === seriesName);
+async function fixNaming(dest, seriesNameVal) {
+    const s = auditData.series.find((x) => x.destination === dest && x.series_name === seriesNameVal);
     if (!s || !s.naming_issues.length) return;
 
     const fixes = s.naming_issues.map((issue) => ({
         destination: dest,
-        series_name: seriesName,
+        series_name: seriesNameVal,
         current: issue.current,
         expected: issue.expected,
     }));
@@ -1383,14 +1395,15 @@ async function fixNaming(dest, seriesName) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ fixes }),
         });
+        if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         const successes = data.results.filter((r) => r.success);
         const errors = data.results.filter((r) => r.error);
-        if (successes.length > 0) showToast(`${successes.length} fichier${successes.length > 1 ? "s" : ""} renommé${successes.length > 1 ? "s" : ""}`, "success");
+        if (successes.length > 0) showToast(t("audit.fix.success", { count: successes.length }), "success");
         errors.forEach((err) => showToast(`${err.current}: ${err.error}`, "error"));
         await runAudit();
     } catch {
-        showToast("Erreur lors de la correction", "error");
+        showToast(t("audit.fix.error"), "error");
     }
 }
 
@@ -1408,7 +1421,6 @@ btnRunAudit.addEventListener("click", runAudit);
 
 // ─── CONVERT CBR → CBZ ─────────────────────────────────
 
-// Path suggestions from configured destinations
 convertPathInput.addEventListener("input", () => {
     const val = convertPathInput.value.trim().toLowerCase();
     if (!val) {
@@ -1452,14 +1464,15 @@ document.addEventListener("click", (e) => {
 async function scanCbr() {
     const scanPath = convertPathInput.value.trim();
     if (!scanPath) {
-        showToast("Entrez un chemin de dossier", "error");
+        showToast(t("convert.error.path_required"), "error");
         return;
     }
 
     btnScanCbr.disabled = true;
-    btnScanCbr.textContent = "Scan...";
+    btnScanCbr.textContent = t("convert.btn.scanning");
     try {
         const res = await fetch(`/api/scan-cbr?path=${encodeURIComponent(scanPath)}`);
+        if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         if (data.error) {
             showToast(data.error, "error");
@@ -1469,16 +1482,16 @@ async function scanCbr() {
         }
         renderConvertTable();
     } catch {
-        showToast("Erreur lors du scan", "error");
+        showToast(t("convert.error.scan"), "error");
     } finally {
         btnScanCbr.disabled = false;
-        btnScanCbr.textContent = "Scanner";
+        btnScanCbr.textContent = t("convert.btn.scan");
     }
 }
 
 function renderConvertTable() {
     if (convertData.length === 0) {
-        convertTbody.innerHTML = `<tr class="empty-row"><td colspan="5">Aucun fichier CBR trouvé</td></tr>`;
+        convertTbody.innerHTML = `<tr class="empty-row"><td colspan="5">${t("convert.no_cbr")}</td></tr>`;
         btnConvert.disabled = true;
         return;
     }
@@ -1486,11 +1499,11 @@ function renderConvertTable() {
     let html = "";
     let fileIndex = 0;
     convertData.forEach((group) => {
-        html += `<tr class="convert-group-row"><td colspan="5"><strong>${escHtml(group.series_name)}</strong> <span class="text-muted">(${group.files.length} fichiers)</span></td></tr>`;
+        html += `<tr class="convert-group-row"><td colspan="5"><strong>${escHtml(group.series_name)}</strong> <span class="text-muted">(${t("convert.files_label", { count: group.files.length })})</span></td></tr>`;
         group.files.forEach((f) => {
             const disabled = f.has_cbz ? "disabled" : "";
             const rowClass = f.has_cbz ? "convert-row convert-row-exists" : "convert-row";
-            const status = f.has_cbz ? `<span class="convert-status-exists">CBZ existe</span>` : (f.status || "");
+            const status = f.has_cbz ? `<span class="convert-status-exists">${t("convert.cbz_exists")}</span>` : (f.status || "");
             const tome = f.tome != null ? `T${String(f.tome).padStart(2, "0")}` : "-";
             html += `<tr class="${rowClass}">
                 <td class="col-check"><input type="checkbox" class="convert-check" data-path="${escHtml(f.path)}" ${disabled}></td>
@@ -1514,8 +1527,8 @@ function updateConvertButton() {
     const checked = getConvertChecked();
     btnConvert.disabled = checked.length === 0;
     btnConvert.textContent = checked.length > 0
-        ? `Convertir la sélection (${checked.length})`
-        : "Convertir la sélection";
+        ? t("convert.btn.convert_n", { count: checked.length })
+        : t("convert.btn.convert");
 }
 
 convertTbody.addEventListener("change", updateConvertButton);
@@ -1535,7 +1548,7 @@ async function convertSelected() {
 
     btnConvert.disabled = true;
     convertProgress.style.display = "";
-    convertProgressText.textContent = `Conversion de ${items.length} fichier${items.length > 1 ? "s" : ""} en cours...`;
+    convertProgressText.textContent = t("convert.progress_detail", { count: items.length });
 
     try {
         const res = await fetch("/api/convert", {
@@ -1543,6 +1556,7 @@ async function convertSelected() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ items, delete_original: deleteOriginal }),
         });
+        if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         if (data.error) {
             showToast(data.error, "error");
@@ -1550,14 +1564,13 @@ async function convertSelected() {
             const successes = data.results.filter((r) => r.success);
             const errors = data.results.filter((r) => r.error);
             if (successes.length > 0) {
-                showToast(`${successes.length} fichier${successes.length > 1 ? "s" : ""} converti${successes.length > 1 ? "s" : ""}`, "success");
+                showToast(t("convert.success", { count: successes.length }), "success");
             }
             errors.forEach((err) => showToast(`${err.source}: ${err.error}`, "error"));
         }
-        // Re-scan to refresh statuses
         await scanCbr();
     } catch {
-        showToast("Erreur lors de la conversion", "error");
+        showToast(t("convert.error"), "error");
     } finally {
         convertProgress.style.display = "none";
     }

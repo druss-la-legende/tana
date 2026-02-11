@@ -1,82 +1,89 @@
 # Tana - File Organizer (CBZ/CBR/PDF)
 
-> **Tana** (棚) signifie "étagère" en japonais. Comme son nom l'indique, Tana range vos fichiers sur la bonne étagère.
+**Langue / Language:** [Francais](#francais) | [English](#english)
 
-Outil web pour organiser automatiquement une collection de manga et BD (CBR, CBZ, PDF) depuis un dossier d'import vers des destinations catégorisées.
+---
 
-## Aperçu
+<a id="francais"></a>
 
-![Vue principale - Liste des fichiers avec détection automatique des séries et matching](9H6M59DpPH.png)
-*Vue principale : les fichiers sont analysés automatiquement. Tana détecte le nom de série, propose un matching avec les séries existantes, et permet de rechercher manuellement une correspondance.*
+> **Tana** (棚) signifie "etagere" en japonais. Comme son nom l'indique, Tana range vos fichiers sur la bonne etagere.
 
-![Panneau d'organisation - Groupement par série et aperçu du renommage](YPRM8emGso.png)
-*Organisation : les fichiers sont groupés par série détectée. Le panneau du bas permet de choisir le nom de série, la destination, et affiche un aperçu du renommage avant validation.*
+Outil web pour organiser automatiquement une collection de manga et BD (CBR, CBZ, PDF) depuis un dossier d'import vers des destinations categorisees.
 
-## Fonctionnalités
+## Apercu
+
+![Vue principale - Liste des fichiers avec detection automatique des series et matching](docs/screenshot-files.png)
+*Vue principale : les fichiers sont analyses automatiquement. Tana detecte le nom de serie, propose un matching avec les series existantes, et permet de rechercher manuellement une correspondance.*
+
+![Panneau d'organisation - Groupement par serie et apercu du renommage](docs/screenshot-organize.png)
+*Organisation : les fichiers sont groupes par serie detectee. Le panneau du bas permet de choisir le nom de serie, la destination, et affiche un apercu du renommage avant validation.*
+
+## Fonctionnalites
 
 ### Organisation
 
-- **Détection automatique** du nom de série et du numéro de tome (supporte `Tome 12`, `T12`, `Vol.12`, `v12`, `#12`)
-- **Nettoyage intelligent** des noms de fichiers (préfixes BD.FR, métadonnées entre crochets, marqueurs scene…)
-- **Matching intelligent** avec les séries existantes (normalisation accents/articles, scoring multi-critères)
-- **Organisation batch** : un clic pour ranger tous les fichiers auto-matchés
-- **Organisation rapide** fichier par fichier via le bouton "Ajouter à"
-- **Groupement visuel** par série détectée avec sélection de groupe
+- **Detection automatique** du nom de serie et du numero de tome (supporte `Tome 12`, `T12`, `Vol.12`, `v12`, `#12`)
+- **Nettoyage intelligent** des noms de fichiers (prefixes BD.FR, metadonnees entre crochets, marqueurs scene...)
+- **Matching intelligent** avec les series existantes (normalisation accents/articles, scoring multi-criteres)
+- **Organisation batch** : un clic pour ranger tous les fichiers auto-matches
+- **Organisation rapide** fichier par fichier via le bouton "Ajouter a"
+- **Groupement visuel** par serie detectee avec selection de groupe
 - **Tri et filtres** par nom, taille, tome, statut de match
-- **Recherche** dans les séries existantes avec autocomplétion et navigation clavier
-- **Suppression avec corbeille** : les fichiers supprimés vont dans `.trash/` avec possibilité d'annuler
-- **Scan récursif** du dossier source (sous-dossiers inclus)
-- **Liens externes** vers Nautiljon et Manga-News pour vérification
+- **Recherche** dans les series existantes avec autocompletion et navigation clavier
+- **Suppression avec corbeille** : les fichiers supprimes vont dans `.trash/` avec possibilite d'annuler
+- **Scan recursif** du dossier source (sous-dossiers inclus)
+- **Liens externes** vers Nautiljon et Manga-News pour verification
 
 ### Templates de nommage
 
 - **Templates personnalisables** avec variables : `{series}`, `{tome}`, `{tome:02d}`, `{tome:03d}`, `{title}`, `{ext}`, `{EXT}`
-- **Template par défaut** : `{series} - T{tome:02d}{ext}` (ex: `One Piece - T05.cbz`)
-- **Template sans tome** : utilisé quand aucun numéro de tome n'est détecté
-- **Règles par destination** : appliquer un template différent selon le chemin (ex: un format pour `manga/`, un autre pour `bd/`)
-- **Aperçu en temps réel** du renommage dans la configuration
+- **Template par defaut** : `{series} - T{tome:02d}{ext}` (ex: `One Piece - T05.cbz`)
+- **Template sans tome** : utilise quand aucun numero de tome n'est detecte
+- **Regles par destination** : appliquer un template different selon le chemin (ex: un format pour `manga/`, un autre pour `bd/`)
+- **Apercu en temps reel** du renommage dans la configuration
 
 ### Audit de collection
 
-- **Détection des tomes manquants** dans une série (gaps entre le premier et le dernier tome)
-- **Vérification du nommage** : compare chaque fichier au template attendu et signale les incohérences
-- **Détection des doublons** : tomes présents en plusieurs exemplaires
-- **Extensions mixtes** : signale les séries mélangeant CBR, CBZ et PDF
-- **Dossiers vides et séries à fichier unique**
+- **Detection des tomes manquants** dans une serie (gaps entre le premier et le dernier tome)
+- **Verification du nommage** : compare chaque fichier au template attendu et signale les incoherences
+- **Detection des doublons** : tomes presents en plusieurs exemplaires
+- **Extensions mixtes** : signale les series melangeant CBR, CBZ et PDF
+- **Dossiers vides et series a fichier unique**
 - **Correction automatique** du nommage en un clic ("Corriger tout")
-- **Filtres et recherche** : par type de problème, par nom de série
+- **Filtres et recherche** : par type de probleme, par nom de serie
 
-### Conversion CBR → CBZ
+### Conversion CBR vers CBZ
 
 - **Conversion de fichiers** CBR (RAR) en CBZ (ZIP)
-- **Scan de dossier** avec champ libre et suggestions des destinations configurées
-- **Affichage groupé** par série avec sélection individuelle ou globale
-- **Détection des CBZ existants** : fichiers déjà convertis grisés automatiquement
-- **Option de suppression** des CBR originaux après conversion
+- **Scan de dossier** avec champ libre et suggestions des destinations configurees
+- **Affichage groupe** par serie avec selection individuelle ou globale
+- **Detection des CBZ existants** : fichiers deja convertis grises automatiquement
+- **Option de suppression** des CBR originaux apres conversion
 
 ### Historique
 
-- **Traçabilité complète** de toutes les actions : organisation, suppression, restauration, correction de nommage, conversion
+- **Tracabilite complete** de toutes les actions : organisation, suppression, restauration, correction de nommage, conversion
 - **Filtrage par type** d'action
-- **Stockage local** dans `history.json` (auto-pruning à 500 entrées)
+- **Stockage local** dans `history.json` (auto-pruning a 500 entrees)
 
 ### Interface
 
-- **Thème** dark / light
-- **Page de configuration** pour gérer le dossier source, les destinations et les templates depuis l'interface
+- **Bilingue** : francais et anglais (choix dans la configuration)
+- **Theme** dark / light
+- **Page de configuration** pour gerer le dossier source, les destinations et les templates depuis l'interface
 - **5 onglets** : Fichiers, Audit, Historique, Convertir, Configuration
 
 ## Stack
 
 - **Backend** : Python / Flask
 - **Frontend** : Vanilla JS + HTML + CSS (pas de framework)
-- **Base de données** : aucune (filesystem uniquement)
-- **Conversion CBR** : `rarfile` + `unrar` (système)
+- **Base de donnees** : aucune (filesystem uniquement)
+- **Conversion CBR** : `rarfile` + `unrar` (systeme)
 
 ## Installation
 
 ```bash
-# Dépendance système pour la conversion CBR → CBZ
+# Dependance systeme pour la conversion CBR vers CBZ
 sudo apt install unrar  # Debian/Ubuntu
 
 python -m venv venv
@@ -86,26 +93,7 @@ pip install -r requirements.txt
 
 ## Configuration
 
-La configuration est stockée dans `config.json` à la racine du projet (créé automatiquement au premier lancement avec des valeurs par défaut) :
-
-```json
-{
-  "source_dir": "/chemin/vers/dossier/incoming",
-  "destinations": [
-    "/chemin/vers/bd",
-    "/chemin/vers/manga"
-  ],
-  "template": "{series} - T{tome:02d}{ext}",
-  "template_no_tome": "{series}{ext}",
-  "template_rules": [
-    {
-      "filter": "manga",
-      "template": "{series} - T{tome:02d}{ext}",
-      "template_no_tome": "{series}{ext}"
-    }
-  ]
-}
-```
+La configuration est stockee dans `config.json` a la racine du projet (cree automatiquement au premier lancement avec des valeurs par defaut). Voir [`config.example.json`](config.example.json) pour un exemple.
 
 Elle est aussi modifiable directement depuis l'onglet **Configuration** dans l'interface web.
 
@@ -117,21 +105,169 @@ python app.py
 
 L'interface est accessible sur `http://localhost:9045`.
 
+Variables d'environnement optionnelles :
+- `TANA_HOST` : adresse d'ecoute (defaut: `0.0.0.0`)
+- `TANA_PORT` : port (defaut: `9045`)
+- `FLASK_DEBUG` : mode debug (`1` / `true` / `yes`)
+
 ## Matching
 
-Le système de matching utilise un scoring multi-critères :
+Le systeme de matching utilise un scoring multi-criteres :
 
 | Score | Niveau | Description |
 |-------|--------|-------------|
 | 1.0 | Exact | Nom identique (case-insensitive) |
-| 0.95 | Normalisé | Identique après suppression accents, articles, ponctuation |
-| 0.7 | Préfixe | Un nom est préfixe de l'autre (ex: "Dragon Ball" / "Dragon Ball Super") |
+| 0.95 | Normalise | Identique apres suppression accents, articles, ponctuation |
+| 0.7 | Prefixe | Un nom est prefixe de l'autre (ex: "Dragon Ball" / "Dragon Ball Super") |
 | 0.6-0.8 | Tokens | 80%+ des mots en commun |
 
 - Score >= 0.9 : match automatique (badge vert)
 - Score 0.6-0.9 : suggestion (badge jaune, confirmation manuelle)
 - Score < 0.6 : pas de match
 
-## Formats supportés
+## Tests
+
+```bash
+pip install pytest
+python -m pytest tests/ -v
+```
+
+## Formats supportes
+
+`.cbr` `.cbz` `.pdf`
+
+---
+
+<a id="english"></a>
+
+# English
+
+> **Tana** (棚) means "shelf" in Japanese. As the name suggests, Tana puts your files on the right shelf.
+
+A web tool for automatically organizing manga and comic book collections (CBR, CBZ, PDF) from an import folder to categorized destinations.
+
+## Preview
+
+![Main view - File list with automatic series detection and matching](docs/screenshot-files.png)
+*Main view: files are analyzed automatically. Tana detects the series name, suggests matches with existing series, and allows manual search.*
+
+![Organization panel - Grouping by series with rename preview](docs/screenshot-organize.png)
+*Organization: files are grouped by detected series. The bottom panel lets you choose the series name, destination, and shows a rename preview before confirmation.*
+
+## Features
+
+### Organization
+
+- **Automatic detection** of series name and volume number (supports `Tome 12`, `T12`, `Vol.12`, `v12`, `#12`)
+- **Smart filename cleaning** (BD.FR prefixes, bracket metadata, scene markers...)
+- **Intelligent matching** with existing series (accent/article normalization, multi-criteria scoring)
+- **Batch organization**: one click to organize all auto-matched files
+- **Quick organization** file by file via the "Add to" button
+- **Visual grouping** by detected series with group selection
+- **Sorting and filters** by name, size, volume, match status
+- **Search** existing series with autocomplete and keyboard navigation
+- **Soft delete**: deleted files go to `.trash/` with undo support
+- **Recursive scan** of source folder (subfolders included)
+- **External links** to Nautiljon and Manga-News for verification
+
+### Naming Templates
+
+- **Customizable templates** with variables: `{series}`, `{tome}`, `{tome:02d}`, `{tome:03d}`, `{title}`, `{ext}`, `{EXT}`
+- **Default template**: `{series} - T{tome:02d}{ext}` (e.g., `One Piece - T05.cbz`)
+- **No-volume template**: used when no volume number is detected
+- **Per-destination rules**: apply different templates based on path (e.g., one format for `manga/`, another for `bd/`)
+- **Real-time preview** of renaming in settings
+
+### Collection Audit
+
+- **Missing volume detection** in a series (gaps between first and last volume)
+- **Naming verification**: compares each file to the expected template and flags inconsistencies
+- **Duplicate detection**: volumes present in multiple copies
+- **Mixed extensions**: flags series mixing CBR, CBZ and PDF
+- **Empty folders and single-file series**
+- **Auto-fix naming** with one click ("Fix all")
+- **Filters and search**: by issue type, by series name
+
+### CBR to CBZ Conversion
+
+- **File conversion** from CBR (RAR) to CBZ (ZIP)
+- **Folder scanning** with free text input and configured destination suggestions
+- **Grouped display** by series with individual or global selection
+- **Existing CBZ detection**: already converted files are grayed out
+- **Option to delete** original CBR files after conversion
+
+### History
+
+- **Full traceability** of all actions: organization, deletion, restoration, naming fixes, conversion
+- **Filtering by action** type
+- **Local storage** in `history.json` (auto-pruning at 500 entries)
+
+### Interface
+
+- **Bilingual**: French and English (configurable in settings)
+- **Dark / light theme**
+- **Settings page** to manage source folder, destinations and templates from the UI
+- **5 tabs**: Files, Audit, History, Convert, Settings
+
+## Stack
+
+- **Backend**: Python / Flask
+- **Frontend**: Vanilla JS + HTML + CSS (no framework)
+- **Database**: none (filesystem only)
+- **CBR conversion**: `rarfile` + `unrar` (system)
+
+## Installation
+
+```bash
+# System dependency for CBR to CBZ conversion
+sudo apt install unrar  # Debian/Ubuntu
+
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Configuration
+
+Configuration is stored in `config.json` at the project root (automatically created on first launch with default values). See [`config.example.json`](config.example.json) for an example.
+
+It can also be edited directly from the **Settings** tab in the web interface.
+
+## Running
+
+```bash
+python app.py
+```
+
+The interface is available at `http://localhost:9045`.
+
+Optional environment variables:
+- `TANA_HOST`: listen address (default: `0.0.0.0`)
+- `TANA_PORT`: port (default: `9045`)
+- `FLASK_DEBUG`: debug mode (`1` / `true` / `yes`)
+
+## Matching
+
+The matching system uses multi-criteria scoring:
+
+| Score | Level | Description |
+|-------|-------|-------------|
+| 1.0 | Exact | Identical name (case-insensitive) |
+| 0.95 | Normalized | Identical after stripping accents, articles, punctuation |
+| 0.7 | Prefix | One name is a prefix of the other (e.g., "Dragon Ball" / "Dragon Ball Super") |
+| 0.6-0.8 | Tokens | 80%+ words in common |
+
+- Score >= 0.9: automatic match (green badge)
+- Score 0.6-0.9: suggestion (yellow badge, manual confirmation)
+- Score < 0.6: no match
+
+## Tests
+
+```bash
+pip install pytest
+python -m pytest tests/ -v
+```
+
+## Supported Formats
 
 `.cbr` `.cbz` `.pdf`

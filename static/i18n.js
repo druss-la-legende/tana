@@ -1,0 +1,428 @@
+// ─── INTERNATIONALIZATION ────────────────────────────────
+const TRANSLATIONS = {
+  fr: {
+    // Header
+    "subtitle": "Organise tes CBR / CBZ / PDF",
+
+    // Tabs
+    "tab.files": "Fichiers",
+    "tab.audit": "Audit",
+    "tab.history": "Historique",
+    "tab.convert": "Convertir",
+    "tab.config": "Configuration",
+
+    // Files view
+    "files.select_all": "Tout s\u00e9lectionner",
+    "files.filter.all": "Tous",
+    "files.filter.matched": "Match\u00e9s",
+    "files.filter.suggested": "Suggestions",
+    "files.filter.unmatched": "Sans match",
+    "files.btn.organize_matched": "Organiser tous les match\u00e9s",
+    "files.btn.refresh": "Rafra\u00eechir",
+    "files.col.file": "Fichier",
+    "files.col.series": "S\u00e9rie d\u00e9tect\u00e9e",
+    "files.col.existing": "S\u00e9rie existante",
+    "files.col.tome": "Tome",
+    "files.col.title": "Titre",
+    "files.col.size": "Taille",
+    "files.loading": "Chargement...",
+    "files.empty": "Aucun fichier CBR/CBZ/PDF trouv\u00e9",
+    "files.empty_filter": "Aucun fichier ne correspond au filtre",
+    "files.no_series": "Sans s\u00e9rie d\u00e9tect\u00e9e",
+    "files.count": "{count} fichier",
+    "files.count_plural": "{count} fichiers",
+    "files.count_filtered": "{shown} / {total} fichier",
+    "files.count_filtered_plural": "{shown} / {total} fichiers",
+    "files.search_placeholder": "Rechercher...",
+    "files.title_placeholder": "Titre (optionnel)",
+    "files.no_match": "Pas de match",
+    "files.match_pct": "Match {pct}%",
+    "files.suggestion_pct": "Suggestion {pct}%",
+    "files.organize_n_matched": "Organiser les {count} match\u00e9s",
+
+    // Action panel
+    "action.organize": "Organiser",
+    "action.series_name": "Nom de la s\u00e9rie",
+    "action.series_placeholder": "Ex: One Piece",
+    "action.destination": "Destination",
+    "action.choose": "-- Choisir --",
+    "action.preview": "Aper\u00e7u",
+    "action.btn_organize": "Organiser les fichiers",
+    "action.in_progress": "En cours...",
+
+    // Config view
+    "config.title": "Configuration",
+    "config.source_dir": "Dossier source",
+    "config.source_hint": "Dossier scann\u00e9 au d\u00e9marrage pour trouver les fichiers \u00e0 organiser.",
+    "config.source_placeholder": "/chemin/vers/dossier",
+    "config.destinations": "Dossiers de destination",
+    "config.destinations_hint": "Dossiers dans lesquels les s\u00e9ries sont organis\u00e9es. Ils sont scann\u00e9s pour d\u00e9tecter les s\u00e9ries existantes.",
+    "config.dest_placeholder": "/chemin/vers/nouveau/dossier",
+    "config.btn_add": "Ajouter",
+    "config.template": "Template de nommage (par d\u00e9faut)",
+    "config.template_hint": "Variables : {series}, {tome}, {tome:02d}, {tome:03d}, {title}, {ext}, {EXT}",
+    "config.template_placeholder": "{series} - T{tome:02d}{ext}",
+    "config.preview_label": "Aper\u00e7u :",
+    "config.template_no_tome": "Template sans tome (par d\u00e9faut)",
+    "config.template_no_tome_hint": "Utilis\u00e9 quand aucun num\u00e9ro de tome n'est d\u00e9tect\u00e9.",
+    "config.template_no_tome_placeholder": "{series}{ext}",
+    "config.rules": "R\u00e8gles de template par destination",
+    "config.rules_hint": "Appliquer un template diff\u00e9rent selon le chemin de destination. Le filtre est cherch\u00e9 dans le chemin.",
+    "config.rule_filter_placeholder": "Filtre (ex: manga)",
+    "config.rule_template_placeholder": "Template (ex: {series} T{tome:02d}{ext})",
+    "config.rule_no_tome_placeholder": "Template sans tome (optionnel)",
+    "config.btn_save": "Sauvegarder",
+    "config.lang": "Langue / Language",
+    "config.delete": "Supprimer",
+
+    // Config messages
+    "config.error.load": "Erreur lors du chargement de la configuration",
+    "config.error.filter_required": "Le filtre est requis",
+    "config.error.template_required": "Le template est requis",
+    "config.error.duplicate_dest": "Ce dossier est d\u00e9j\u00e0 dans la liste",
+    "config.error.source_required": "Le dossier source est requis",
+    "config.error.dest_required": "Au moins une destination est requise",
+    "config.error.save": "Erreur lors de la sauvegarde",
+    "config.saved": "Configuration sauvegard\u00e9e",
+
+    // Scan / files
+    "scan.error": "Erreur lors du scan",
+    "scan.no_series": "Aucune s\u00e9rie trouv\u00e9e",
+
+    // Organize
+    "organize.added": "{name} ajout\u00e9 \u00e0 {series}/",
+    "organize.error.add": "Erreur lors de l'ajout",
+    "organize.confirm_existing": "Fichiers existants :",
+    "organize.confirm_more": "... et {count} autres",
+    "organize.confirm_continue": "Voulez-vous continuer ?",
+    "organize.success": "{count} fichier(s) organis\u00e9(s) dans {name}/",
+    "organize.error": "Erreur lors de l'organisation",
+    "organize.batch_confirm": "Organiser {count} fichier(s) automatiquement match\u00e9s ?",
+    "organize.batch_success": "{count} fichier(s) organis\u00e9(s)",
+    "organize.batch_error": "Erreur lors de l'organisation batch",
+
+    // Delete
+    "delete.deleted": "{name} supprim\u00e9",
+    "delete.restored": "{name} restaur\u00e9",
+    "delete.error.restore": "Erreur lors de la restauration",
+    "delete.error": "Erreur lors de la suppression",
+    "delete.undo": "Annuler",
+
+    // History
+    "history.title": "Historique des actions",
+    "history.filter.all": "Toutes les actions",
+    "history.filter.organize": "Organiser",
+    "history.filter.organize_batch": "Organiser (batch)",
+    "history.filter.delete": "Supprimer",
+    "history.filter.undelete": "Restaurer",
+    "history.filter.fix_naming": "Correction nommage",
+    "history.filter.convert": "Convertir CBR",
+    "history.btn.refresh": "Rafra\u00eechir",
+    "history.col.date": "Date",
+    "history.col.action": "Action",
+    "history.col.detail": "D\u00e9tail",
+    "history.col.series": "S\u00e9rie",
+    "history.empty": "Aucune action enregistr\u00e9e",
+    "history.error": "Erreur lors du chargement de l'historique",
+    "history.action.organize": "Organiser",
+    "history.action.organize_batch": "Organiser (batch)",
+    "history.action.delete": "Supprimer",
+    "history.action.undelete": "Restaurer",
+    "history.action.fix_naming": "Correction nommage",
+    "history.action.convert": "Convertir CBR",
+
+    // Audit
+    "audit.title": "Audit de la collection",
+    "audit.btn.run": "Lancer l'audit",
+    "audit.btn.rerun": "Relancer l'audit",
+    "audit.loading": "Analyse de la collection en cours...",
+    "audit.in_progress": "Analyse en cours...",
+    "audit.error": "Erreur lors de l'audit",
+    "audit.search_placeholder": "Rechercher une s\u00e9rie...",
+    "audit.filter.all": "Toutes les s\u00e9ries",
+    "audit.filter.issues": "Avec probl\u00e8mes",
+    "audit.filter.gaps": "Tomes manquants",
+    "audit.filter.naming": "Nommage incorrect",
+    "audit.filter.duplicates": "Tomes dupliqu\u00e9s",
+    "audit.filter.empty": "Dossiers vides",
+    "audit.filter.single": "Fichier unique",
+    "audit.col.series": "S\u00e9rie",
+    "audit.col.destination": "Destination",
+    "audit.col.files": "Fichiers",
+    "audit.col.missing": "Manquants",
+    "audit.col.issues": "Probl\u00e8mes",
+    "audit.stat.series": "S\u00e9ries",
+    "audit.stat.missing_tomes": "Tomes manquants",
+    "audit.stat.naming": "Nommage incorrect",
+    "audit.stat.empty": "Dossiers vides",
+    "audit.stat.single": "Fichier unique",
+    "audit.stat.duplicates": "Tomes dupliqu\u00e9s",
+    "audit.empty": "Aucune s\u00e9rie trouv\u00e9e",
+    "audit.empty_initial": "Lancez un audit pour analyser votre collection",
+    "audit.badge.missing": "{count} manquant(s)",
+    "audit.badge.naming": "{count} nommage",
+    "audit.badge.duplicate": "{count} doublon(s)",
+    "audit.badge.empty": "Vide",
+    "audit.badge.single": "1 fichier",
+    "audit.detail.naming": "Nommage incorrect",
+    "audit.detail.fix_all": "Corriger tout",
+    "audit.detail.missing": "Tomes manquants",
+    "audit.detail.duplicates": "Tomes en double",
+    "audit.detail.files": "Fichiers ({count})",
+    "audit.fix.success": "{count} fichier(s) renomm\u00e9(s)",
+    "audit.fix.error": "Erreur lors de la correction",
+
+    // Convert
+    "convert.title": "Convertir CBR \u2192 CBZ",
+    "convert.dir_label": "Dossier \u00e0 scanner",
+    "convert.dir_placeholder": "/chemin/vers/dossier",
+    "convert.btn.scan": "Scanner",
+    "convert.btn.scanning": "Scan...",
+    "convert.delete_original": "Supprimer les CBR apr\u00e8s conversion",
+    "convert.progress": "Conversion en cours...",
+    "convert.progress_detail": "Conversion de {count} fichier(s) en cours...",
+    "convert.col.file": "Fichier",
+    "convert.col.tome": "Tome",
+    "convert.col.size": "Taille",
+    "convert.col.status": "Statut",
+    "convert.empty": "Entrez un chemin et scannez pour trouver les fichiers CBR",
+    "convert.no_cbr": "Aucun fichier CBR trouv\u00e9",
+    "convert.cbz_exists": "CBZ existe",
+    "convert.btn.convert": "Convertir la s\u00e9lection",
+    "convert.btn.convert_n": "Convertir la s\u00e9lection ({count})",
+    "convert.success": "{count} fichier(s) converti(s)",
+    "convert.error": "Erreur lors de la conversion",
+    "convert.error.path_required": "Entrez un chemin de dossier",
+    "convert.error.scan": "Erreur lors du scan",
+    "convert.files_label": "{count} fichiers",
+  },
+  en: {
+    // Header
+    "subtitle": "Organize your CBR / CBZ / PDF",
+
+    // Tabs
+    "tab.files": "Files",
+    "tab.audit": "Audit",
+    "tab.history": "History",
+    "tab.convert": "Convert",
+    "tab.config": "Settings",
+
+    // Files view
+    "files.select_all": "Select all",
+    "files.filter.all": "All",
+    "files.filter.matched": "Matched",
+    "files.filter.suggested": "Suggestions",
+    "files.filter.unmatched": "Unmatched",
+    "files.btn.organize_matched": "Organize all matched",
+    "files.btn.refresh": "Refresh",
+    "files.col.file": "File",
+    "files.col.series": "Detected series",
+    "files.col.existing": "Existing series",
+    "files.col.tome": "Volume",
+    "files.col.title": "Title",
+    "files.col.size": "Size",
+    "files.loading": "Loading...",
+    "files.empty": "No CBR/CBZ/PDF files found",
+    "files.empty_filter": "No files match the filter",
+    "files.no_series": "No detected series",
+    "files.count": "{count} file",
+    "files.count_plural": "{count} files",
+    "files.count_filtered": "{shown} / {total} file",
+    "files.count_filtered_plural": "{shown} / {total} files",
+    "files.search_placeholder": "Search...",
+    "files.title_placeholder": "Title (optional)",
+    "files.no_match": "No match",
+    "files.match_pct": "Match {pct}%",
+    "files.suggestion_pct": "Suggestion {pct}%",
+    "files.organize_n_matched": "Organize {count} matched",
+
+    // Action panel
+    "action.organize": "Organize",
+    "action.series_name": "Series name",
+    "action.series_placeholder": "e.g. One Piece",
+    "action.destination": "Destination",
+    "action.choose": "-- Choose --",
+    "action.preview": "Preview",
+    "action.btn_organize": "Organize files",
+    "action.in_progress": "Processing...",
+
+    // Config view
+    "config.title": "Settings",
+    "config.source_dir": "Source directory",
+    "config.source_hint": "Directory scanned at startup to find files to organize.",
+    "config.source_placeholder": "/path/to/directory",
+    "config.destinations": "Destination directories",
+    "config.destinations_hint": "Directories where series are organized. They are scanned to detect existing series.",
+    "config.dest_placeholder": "/path/to/new/directory",
+    "config.btn_add": "Add",
+    "config.template": "Naming template (default)",
+    "config.template_hint": "Variables: {series}, {tome}, {tome:02d}, {tome:03d}, {title}, {ext}, {EXT}",
+    "config.template_placeholder": "{series} - T{tome:02d}{ext}",
+    "config.preview_label": "Preview:",
+    "config.template_no_tome": "Template without volume (default)",
+    "config.template_no_tome_hint": "Used when no volume number is detected.",
+    "config.template_no_tome_placeholder": "{series}{ext}",
+    "config.rules": "Template rules by destination",
+    "config.rules_hint": "Apply a different template based on the destination path. The filter is searched within the path.",
+    "config.rule_filter_placeholder": "Filter (e.g. manga)",
+    "config.rule_template_placeholder": "Template (e.g. {series} T{tome:02d}{ext})",
+    "config.rule_no_tome_placeholder": "Template without volume (optional)",
+    "config.btn_save": "Save",
+    "config.lang": "Language / Langue",
+    "config.delete": "Delete",
+
+    // Config messages
+    "config.error.load": "Error loading configuration",
+    "config.error.filter_required": "Filter is required",
+    "config.error.template_required": "Template is required",
+    "config.error.duplicate_dest": "This directory is already in the list",
+    "config.error.source_required": "Source directory is required",
+    "config.error.dest_required": "At least one destination is required",
+    "config.error.save": "Error saving configuration",
+    "config.saved": "Configuration saved",
+
+    // Scan / files
+    "scan.error": "Error during scan",
+    "scan.no_series": "No series found",
+
+    // Organize
+    "organize.added": "{name} added to {series}/",
+    "organize.error.add": "Error adding file",
+    "organize.confirm_existing": "Existing files:",
+    "organize.confirm_more": "... and {count} more",
+    "organize.confirm_continue": "Do you want to continue?",
+    "organize.success": "{count} file(s) organized in {name}/",
+    "organize.error": "Error during organization",
+    "organize.batch_confirm": "Organize {count} automatically matched file(s)?",
+    "organize.batch_success": "{count} file(s) organized",
+    "organize.batch_error": "Error during batch organization",
+
+    // Delete
+    "delete.deleted": "{name} deleted",
+    "delete.restored": "{name} restored",
+    "delete.error.restore": "Error during restoration",
+    "delete.error": "Error during deletion",
+    "delete.undo": "Undo",
+
+    // History
+    "history.title": "Action history",
+    "history.filter.all": "All actions",
+    "history.filter.organize": "Organize",
+    "history.filter.organize_batch": "Organize (batch)",
+    "history.filter.delete": "Delete",
+    "history.filter.undelete": "Restore",
+    "history.filter.fix_naming": "Fix naming",
+    "history.filter.convert": "Convert CBR",
+    "history.btn.refresh": "Refresh",
+    "history.col.date": "Date",
+    "history.col.action": "Action",
+    "history.col.detail": "Detail",
+    "history.col.series": "Series",
+    "history.empty": "No actions recorded",
+    "history.error": "Error loading history",
+    "history.action.organize": "Organize",
+    "history.action.organize_batch": "Organize (batch)",
+    "history.action.delete": "Delete",
+    "history.action.undelete": "Restore",
+    "history.action.fix_naming": "Fix naming",
+    "history.action.convert": "Convert CBR",
+
+    // Audit
+    "audit.title": "Collection audit",
+    "audit.btn.run": "Run audit",
+    "audit.btn.rerun": "Re-run audit",
+    "audit.loading": "Analyzing collection...",
+    "audit.in_progress": "Analyzing...",
+    "audit.error": "Error during audit",
+    "audit.search_placeholder": "Search a series...",
+    "audit.filter.all": "All series",
+    "audit.filter.issues": "With issues",
+    "audit.filter.gaps": "Missing volumes",
+    "audit.filter.naming": "Incorrect naming",
+    "audit.filter.duplicates": "Duplicate volumes",
+    "audit.filter.empty": "Empty folders",
+    "audit.filter.single": "Single file",
+    "audit.col.series": "Series",
+    "audit.col.destination": "Destination",
+    "audit.col.files": "Files",
+    "audit.col.missing": "Missing",
+    "audit.col.issues": "Issues",
+    "audit.stat.series": "Series",
+    "audit.stat.missing_tomes": "Missing volumes",
+    "audit.stat.naming": "Incorrect naming",
+    "audit.stat.empty": "Empty folders",
+    "audit.stat.single": "Single file",
+    "audit.stat.duplicates": "Duplicate volumes",
+    "audit.empty": "No series found",
+    "audit.empty_initial": "Run an audit to analyze your collection",
+    "audit.badge.missing": "{count} missing",
+    "audit.badge.naming": "{count} naming",
+    "audit.badge.duplicate": "{count} duplicate(s)",
+    "audit.badge.empty": "Empty",
+    "audit.badge.single": "1 file",
+    "audit.detail.naming": "Incorrect naming",
+    "audit.detail.fix_all": "Fix all",
+    "audit.detail.missing": "Missing volumes",
+    "audit.detail.duplicates": "Duplicate volumes",
+    "audit.detail.files": "Files ({count})",
+    "audit.fix.success": "{count} file(s) renamed",
+    "audit.fix.error": "Error during fix",
+
+    // Convert
+    "convert.title": "Convert CBR \u2192 CBZ",
+    "convert.dir_label": "Directory to scan",
+    "convert.dir_placeholder": "/path/to/directory",
+    "convert.btn.scan": "Scan",
+    "convert.btn.scanning": "Scanning...",
+    "convert.delete_original": "Delete CBR files after conversion",
+    "convert.progress": "Converting...",
+    "convert.progress_detail": "Converting {count} file(s)...",
+    "convert.col.file": "File",
+    "convert.col.tome": "Volume",
+    "convert.col.size": "Size",
+    "convert.col.status": "Status",
+    "convert.empty": "Enter a path and scan to find CBR files",
+    "convert.no_cbr": "No CBR files found",
+    "convert.cbz_exists": "CBZ exists",
+    "convert.btn.convert": "Convert selection",
+    "convert.btn.convert_n": "Convert selection ({count})",
+    "convert.success": "{count} file(s) converted",
+    "convert.error": "Error during conversion",
+    "convert.error.path_required": "Enter a directory path",
+    "convert.error.scan": "Error during scan",
+    "convert.files_label": "{count} files",
+  },
+};
+
+window.__lang = "fr";
+
+function t(key, params) {
+  const lang = window.__lang || "fr";
+  let str = (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || TRANSLATIONS["fr"][key] || key;
+  if (params) {
+    for (const k of Object.keys(params)) {
+      str = str.split("{" + k + "}").join(String(params[k]));
+    }
+  }
+  return str;
+}
+
+function applyI18n() {
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    el.title = t(el.dataset.i18nTitle);
+  });
+}
+
+function setLang(lang) {
+  if (!TRANSLATIONS[lang]) lang = "fr";
+  window.__lang = lang;
+  localStorage.setItem("tana_lang", lang);
+  document.documentElement.lang = lang;
+  applyI18n();
+}
