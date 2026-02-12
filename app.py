@@ -931,6 +931,53 @@ def api_undelete():
     return jsonify({"success": True, "filename": filename})
 
 
+@app.route("/api/upload", methods=["POST"])
+def api_upload():
+    """Upload files to the source directory via drag & drop."""
+    cfg = load_config()
+    source_dir = cfg["source_dir"]
+    source = Path(source_dir)
+
+    if not source.is_dir():
+        return jsonify({"error": "Dossier source introuvable"}), 400
+
+    extensions = get_extensions(cfg)
+    uploaded_files = request.files.getlist("files")
+
+    if not uploaded_files:
+        return jsonify({"error": "Aucun fichier reçu"}), 400
+
+    results = []
+    for f in uploaded_files:
+        filename = f.filename or ""
+        if not filename or ".." in filename or "/" in filename or "\\" in filename:
+            results.append({"name": filename, "error": "Nom de fichier non autorisé"})
+            continue
+
+        ext = Path(filename).suffix.lower()
+        if ext not in extensions:
+            results.append({"name": filename, "error": f"Extension {ext} non autorisée"})
+            continue
+
+        target = source / filename
+        if not target.resolve().is_relative_to(source.resolve()):
+            results.append({"name": filename, "error": "Chemin non autorisé"})
+            continue
+
+        if target.exists():
+            results.append({"name": filename, "error": "Le fichier existe déjà"})
+            continue
+
+        try:
+            f.save(str(target))
+            results.append({"name": filename, "success": True})
+            log_action("upload", {"filename": filename, "source_dir": source_dir})
+        except Exception as e:
+            results.append({"name": filename, "error": str(e)})
+
+    return jsonify({"results": results})
+
+
 @app.route("/api/config")
 def api_get_config():
     return jsonify(load_config())

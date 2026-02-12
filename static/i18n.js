@@ -234,6 +234,15 @@ const TRANSLATIONS = {
     "triage.no_files": "Aucun fichier \u00e0 trier",
     "triage.complete": "Triage termin\u00e9 !",
     "triage.error.incomplete": "S\u00e9rie et destination requises",
+
+    // Upload
+    "upload.drop_here": "D\u00e9poser les fichiers ici",
+    "upload.uploading": "Import de {count} fichier(s)...",
+    "upload.success": "{count} fichier(s) import\u00e9(s)",
+    "upload.error": "Erreur lors de l'import",
+    "upload.rejected": "{count} fichier(s) refus\u00e9(s) (formats : {exts})",
+    "history.filter.upload": "Importer",
+    "history.action.upload": "Import",
   },
   en: {
     // Header
@@ -469,6 +478,15 @@ const TRANSLATIONS = {
     "triage.no_files": "No files to triage",
     "triage.complete": "Triage complete!",
     "triage.error.incomplete": "Series and destination required",
+
+    // Upload
+    "upload.drop_here": "Drop files here",
+    "upload.uploading": "Uploading {count} file(s)...",
+    "upload.success": "{count} file(s) imported",
+    "upload.error": "Error during upload",
+    "upload.rejected": "{count} file(s) rejected (formats: {exts})",
+    "history.filter.upload": "Upload",
+    "history.action.upload": "Upload",
   },
 };
 

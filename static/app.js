@@ -117,6 +117,10 @@ const btnTriageSkip = document.getElementById("btn-triage-skip");
 const btnTriagePrev = document.getElementById("btn-triage-prev");
 const btnTriageDelete = document.getElementById("btn-triage-delete");
 
+// ─── DOM REFS (drop overlay) ────────────────────────
+const dropOverlay = document.getElementById("drop-overlay");
+let uploadInProgress = false;
+
 // ─── LANGUAGE ─────────────────────────────────────────
 configLang.addEventListener("change", () => {
     setLang(configLang.value);
@@ -1295,6 +1299,7 @@ function renderHistory() {
         undelete: t("history.action.undelete"),
         fix_naming: t("history.action.fix_naming"),
         convert: t("history.action.convert"),
+        upload: t("history.action.upload"),
     };
 
     historyTbody.innerHTML = historyData.map((h) => {
@@ -1309,6 +1314,8 @@ function renderHistory() {
             detail = `${escHtml(h.current || "")} &rarr; ${escHtml(h.expected || "")}`;
         } else if (h.action === "convert") {
             detail = `${escHtml(h.source || "")} &rarr; ${escHtml(h.destination || "")}`;
+        } else if (h.action === "upload") {
+            detail = escHtml(h.filename || "");
         }
 
         return `<tr class="history-row">
@@ -2189,6 +2196,92 @@ document.addEventListener("keydown", (e) => {
         return;
     }
 });
+
+// ─── DRAG & DROP UPLOAD ─────────────────────────────────
+
+document.body.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (uploadInProgress) return;
+    dropOverlay.style.display = "block";
+});
+
+document.body.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+});
+
+dropOverlay.addEventListener("dragleave", (e) => {
+    if (e.target === dropOverlay) {
+        dropOverlay.style.display = "none";
+    }
+});
+
+dropOverlay.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropOverlay.style.display = "none";
+    if (uploadInProgress) return;
+
+    const files = [...e.dataTransfer.files];
+    if (files.length === 0) return;
+
+    const allowedExts = (appConfig.extensions || [".cbr", ".cbz", ".pdf"]).map((x) => x.toLowerCase());
+    const validFiles = [];
+    const rejected = [];
+
+    for (const f of files) {
+        const ext = "." + f.name.split(".").pop().toLowerCase();
+        if (allowedExts.includes(ext)) {
+            validFiles.push(f);
+        } else {
+            rejected.push(f.name);
+        }
+    }
+
+    if (rejected.length > 0) {
+        showToast(t("upload.rejected", { count: rejected.length, exts: allowedExts.join(", ") }), "error");
+    }
+
+    if (validFiles.length === 0) return;
+    await uploadFiles(validFiles);
+});
+
+async function uploadFiles(files) {
+    uploadInProgress = true;
+    showToast(t("upload.uploading", { count: files.length }), "success");
+
+    const formData = new FormData();
+    files.forEach((f) => formData.append("files", f));
+
+    try {
+        const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+        });
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+
+        if (data.error) {
+            showToast(data.error, "error");
+            return;
+        }
+
+        const successes = data.results.filter((r) => r.success);
+        const errors = data.results.filter((r) => r.error);
+
+        if (successes.length > 0) {
+            showToast(t("upload.success", { count: successes.length }), "success");
+        }
+        errors.forEach((err) => showToast(`${err.name}: ${err.error}`, "error"));
+
+        await scanFiles();
+    } catch {
+        showToast(t("upload.error"), "error");
+    } finally {
+        uploadInProgress = false;
+    }
+}
 
 // ─── INIT ──────────────────────────────────────────────
 async function init() {
