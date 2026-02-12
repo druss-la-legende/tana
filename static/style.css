@@ -922,13 +922,30 @@ td.col-search-ext {
 }
 
 .preview-old {
-    color: var(--text-muted);
-    text-decoration: line-through;
+    color: var(--text-mid);
+    white-space: pre-wrap;
+}
+
+.diff-highlight {
+    background: rgba(255, 60, 60, 0.2);
+    color: var(--error);
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+.diff-insert-marker {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: var(--error);
+    vertical-align: text-bottom;
+    border-radius: 1px;
 }
 
 .preview-new {
     color: var(--success);
     font-weight: 600;
+    white-space: pre-wrap;
 }
 
 /* ─── ACTION BUTTONS ─────────────────────────────────── */

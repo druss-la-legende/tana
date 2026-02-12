@@ -356,6 +356,23 @@ function escHtml(str) {
     return d.innerHTML;
 }
 
+function highlightDiff(source, target) {
+    // Find common prefix
+    let pre = 0;
+    while (pre < source.length && pre < target.length && source[pre] === target[pre]) pre++;
+    // Find common suffix (no overlap with prefix)
+    let suf = 0;
+    while (suf < (source.length - pre) && suf < (target.length - pre) && source[source.length - 1 - suf] === target[target.length - 1 - suf]) suf++;
+
+    const prefix = source.slice(0, pre);
+    const diff = source.slice(pre, source.length - suf || undefined);
+    const suffix = suf > 0 ? source.slice(source.length - suf) : "";
+
+    if (!diff && source.length === target.length) return escHtml(source);
+    const diffHtml = diff ? escHtml(diff) : '<span class="diff-insert-marker"></span>';
+    return `${escHtml(prefix)}<span class="diff-highlight">${diffHtml}</span>${escHtml(suffix)}`;
+}
+
 function buildFileRow(f, i, extraClass = "") {
     const nameParts = f.name.split(".");
     const ext = nameParts.pop();
@@ -1372,7 +1389,7 @@ function renderAuditDetail(index) {
             <ul class="audit-naming-list">`;
         s.naming_issues.forEach((issue) => {
             html += `<li>
-                <span class="preview-old">${escHtml(issue.current)}</span>
+                <span class="preview-old">${highlightDiff(issue.current, issue.expected)}</span>
                 <span class="preview-arrow">&rarr;</span>
                 <span class="preview-new">${escHtml(issue.expected)}</span>
             </li>`;

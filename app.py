@@ -493,7 +493,7 @@ def _audit_series(series_name: str, dest: str, dest_label: str, files: list[dict
     naming_issues = []
     for f in files:
         expected = apply_template(template, series_name, f["tome"], f["extension"], template_no_tome, f.get("title", ""))
-        if f["name"].lower() != expected.lower() or not f["name"][0].isupper():
+        if f["name"].lower() != expected.lower() or (f["name"][0].isalpha() and not f["name"][0].isupper()):
             naming_issues.append({
                 "current": f["name"],
                 "expected": expected,
