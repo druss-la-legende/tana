@@ -1116,7 +1116,20 @@ td.col-search-ext {
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: 2rem;
-    max-width: 720px;
+}
+
+.config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 2rem;
+}
+
+.config-col {
+    min-width: 0;
+}
+
+.config-full {
+    grid-column: 1 / -1;
 }
 
 .config-panel h2 {
@@ -1270,6 +1283,10 @@ td.col-search-ext {
 
     .config-panel {
         padding: 1.25rem;
+    }
+
+    .config-grid {
+        grid-template-columns: 1fr;
     }
 }
 

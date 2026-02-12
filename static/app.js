@@ -43,6 +43,7 @@ const configNewRuleTemplate = document.getElementById("config-new-rule-template"
 const configNewRuleNoTome = document.getElementById("config-new-rule-no-tome");
 const btnAddRule = document.getElementById("btn-add-rule");
 const configLang = document.getElementById("config-lang");
+const configAuditCase = document.getElementById("config-audit-case");
 const configExtList = document.getElementById("config-ext-list");
 const configNewExt = document.getElementById("config-new-ext");
 const btnAddExt = document.getElementById("btn-add-ext");
@@ -149,6 +150,7 @@ function loadConfigUI() {
     configTemplate.value = appConfig.template || "{series} - T{tome:02d}{ext}";
     configTemplateNoTome.value = appConfig.template_no_tome || "{series}{ext}";
     configLang.value = appConfig.lang || "fr";
+    configAuditCase.value = appConfig.audit_case || "first";
     if (!appConfig.template_rules) appConfig.template_rules = [];
     if (!appConfig.extensions) appConfig.extensions = [".cbr", ".cbz", ".pdf"];
     renderExtList();
@@ -314,6 +316,7 @@ btnSaveConfig.addEventListener("click", async () => {
                 template: configTemplate.value.trim(),
                 template_no_tome: configTemplateNoTome.value.trim(),
                 template_rules: appConfig.template_rules || [],
+                audit_case: configAuditCase.value,
                 lang: configLang.value,
             }),
         });

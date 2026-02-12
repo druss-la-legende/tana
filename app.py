@@ -29,6 +29,7 @@ DEFAULT_CONFIG = {
     "template": "{series} - T{tome:02d}{ext}",
     "template_no_tome": "{series}{ext}",
     "template_rules": [],  # [{filter: "manga", template: "...", template_no_tome: "..."}]
+    "audit_case": "first",  # "ignore", "first", "title"
     "lang": "fr",
 }
 
@@ -471,8 +472,23 @@ def api_search_series():
     return jsonify({"results": results})
 
 
+def _check_case(name: str, expected: str, mode: str) -> bool:
+    """Check if filename casing is correct. Returns True if there's an issue."""
+    if name.lower() != expected.lower():
+        return True  # Content mismatch, always flag
+    if mode == "ignore":
+        return False
+    if mode == "first":
+        return name[0].isalpha() and not name[0].isupper()
+    if mode == "title":
+        # Check that each word in the stem starts with uppercase
+        stem = Path(name).stem
+        return any(w[0].isalpha() and not w[0].isupper() for w in stem.split() if w)
+    return False
+
+
 def _audit_series(series_name: str, dest: str, dest_label: str, files: list[dict],
-                   template: str, template_no_tome: str) -> dict:
+                   template: str, template_no_tome: str, audit_case: str = "first") -> dict:
     """Audit a single series folder."""
     tomes = [f["tome"] for f in files if f["tome"] is not None]
     extensions = list(set(f["extension"] for f in files))
@@ -493,7 +509,7 @@ def _audit_series(series_name: str, dest: str, dest_label: str, files: list[dict
     naming_issues = []
     for f in files:
         expected = apply_template(template, series_name, f["tome"], f["extension"], template_no_tome, f.get("title", ""))
-        if f["name"].lower() != expected.lower() or (f["name"][0].isalpha() and not f["name"][0].isupper()):
+        if _check_case(f["name"], expected, audit_case):
             naming_issues.append({
                 "current": f["name"],
                 "expected": expected,
@@ -526,6 +542,7 @@ def audit_collections() -> dict:
     """Scan all destination folders and return quality audit results."""
     cfg = load_config()
     extensions = get_extensions(cfg)
+    audit_case = cfg.get("audit_case", "first")
 
     results: dict = {"series": [], "summary": {}}
 
@@ -555,7 +572,7 @@ def audit_collections() -> dict:
                         "size_human": format_size(size),
                     })
 
-            entry = _audit_series(series_dir.name, dest, dest_label, files, template, template_no_tome)
+            entry = _audit_series(series_dir.name, dest, dest_label, files, template, template_no_tome, audit_case)
             results["series"].append(entry)
 
     s = results["series"]
@@ -876,6 +893,10 @@ def api_save_config():
     if lang not in ("fr", "en"):
         lang = "fr"
 
+    audit_case = data.get("audit_case", "first")
+    if audit_case not in ("ignore", "first", "title"):
+        audit_case = "first"
+
     # Normalize extensions: lowercase, ensure leading dot
     raw_exts = data.get("extensions", list(DEFAULT_EXTENSIONS))
     extensions = []
@@ -897,6 +918,7 @@ def api_save_config():
         "template": template,
         "template_no_tome": template_no_tome,
         "template_rules": clean_rules,
+        "audit_case": audit_case,
         "lang": lang,
     }
     save_config(cfg)
