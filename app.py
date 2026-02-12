@@ -1046,9 +1046,15 @@ def api_scan_cbr():
     if not scan_path:
         return jsonify({"error": "Chemin requis"}), 400
 
-    base = Path(scan_path)
+    base = Path(scan_path).resolve()
     if not base.is_dir():
         return jsonify({"error": "Dossier introuvable"}), 400
+
+    # Restrict to configured destinations
+    cfg = load_config()
+    allowed = [Path(d).resolve() for d in cfg["destinations"]]
+    if not any(base == a or base.is_relative_to(a) for a in allowed):
+        return jsonify({"error": "Ce dossier n'est pas dans une destination configurée"}), 403
 
     groups: dict[str, dict] = {}
     for f in sorted(base.rglob("*.cbr")):
@@ -1084,9 +1090,15 @@ def api_convert():
     if not items:
         return jsonify({"error": "Aucun fichier sélectionné"}), 400
 
+    cfg = load_config()
+    allowed = [Path(d).resolve() for d in cfg["destinations"]]
+
     results = []
     for item in items:
-        cbr_path = Path(item.get("path", ""))
+        cbr_path = Path(item.get("path", "")).resolve()
+        if not any(cbr_path.is_relative_to(a) for a in allowed):
+            results.append({"source": cbr_path.name, "error": "Chemin non autorisé"})
+            continue
         if not cbr_path.is_file() or cbr_path.suffix.lower() != ".cbr":
             results.append({"source": str(cbr_path), "error": "Fichier CBR introuvable"})
             continue
