@@ -248,6 +248,15 @@ const TRANSLATIONS = {
     "upload.rejected": "{count} fichier(s) refus\u00e9(s) (formats : {exts})",
     "history.filter.upload": "Importer",
     "history.action.upload": "Import",
+
+    // Undo
+    "history.undo": "Annuler",
+    "history.undo_confirm": "Voulez-vous vraiment annuler cette action ?",
+    "history.undo_success": "Action annul\u00e9e",
+    "history.undo_error": "Erreur lors de l'annulation",
+    "history.action.undo_organize": "Annul. org.",
+    "history.action.undo_fix_naming": "Annul. nommage",
+    "history.action.undo_convert": "Annul. conversion",
   },
   en: {
     // Header
@@ -497,6 +506,15 @@ const TRANSLATIONS = {
     "upload.rejected": "{count} file(s) rejected (formats: {exts})",
     "history.filter.upload": "Upload",
     "history.action.upload": "Upload",
+
+    // Undo
+    "history.undo": "Undo",
+    "history.undo_confirm": "Are you sure you want to undo this action?",
+    "history.undo_success": "Action undone",
+    "history.undo_error": "Error during undo",
+    "history.action.undo_organize": "Undo organize",
+    "history.action.undo_fix_naming": "Undo naming",
+    "history.action.undo_convert": "Undo convert",
   },
 };
 

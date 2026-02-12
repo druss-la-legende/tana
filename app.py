@@ -725,6 +725,100 @@ def api_history():
     return jsonify({"history": history, "total": len(history)})
 
 
+@app.route("/api/undo", methods=["POST"])
+def api_undo():
+    """Reverse a previous action using its history entry."""
+    data = request.get_json()
+    cfg = load_config()
+    action = data.get("action", "")
+
+    if action in ("organize", "organize_batch"):
+        dest_path = Path(data.get("destination", ""))
+        source_name = data.get("source", "")
+        source_dir = cfg["source_dir"]
+
+        if not dest_path.is_file():
+            return jsonify({"error": "Fichier introuvable dans la destination"}), 400
+
+        restore_path = Path(source_dir) / source_name
+        if restore_path.exists():
+            return jsonify({"error": "Le fichier existe déjà dans le dossier source"}), 400
+
+        restore_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.move(str(dest_path), str(restore_path))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+        log_action("undo_organize", {
+            "source": str(dest_path),
+            "destination": str(restore_path),
+            "original_action": action,
+        })
+        invalidate_series_cache()
+        return jsonify({"success": True})
+
+    elif action == "fix_naming":
+        series = data.get("series", "")
+        current = data.get("current", "")   # ancien nom (cible de l'undo)
+        expected = data.get("expected", "")  # nom actuel sur disque
+
+        found_path = None
+        for dest in cfg["destinations"]:
+            candidate = Path(dest) / series / expected
+            if candidate.is_file():
+                found_path = candidate
+                break
+
+        if not found_path:
+            return jsonify({"error": "Fichier introuvable"}), 400
+
+        target_path = found_path.parent / current
+        if target_path.exists() and target_path != found_path:
+            return jsonify({"error": f"{current} existe déjà"}), 400
+
+        try:
+            found_path.rename(target_path)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+        log_action("undo_fix_naming", {
+            "series": series,
+            "current": expected,
+            "expected": current,
+        })
+        invalidate_series_cache()
+        return jsonify({"success": True})
+
+    elif action == "convert":
+        deleted_original = data.get("deleted_original", True)
+        if deleted_original:
+            return jsonify({"error": "Impossible d'annuler : le CBR original a été supprimé"}), 400
+
+        cbz_path = Path(data.get("destination", ""))
+        allowed = [Path(d).resolve() for d in cfg["destinations"]]
+        cbz_resolved = cbz_path.resolve()
+        if not any(cbz_resolved.is_relative_to(a) for a in allowed):
+            return jsonify({"error": "Chemin non autorisé"}), 400
+
+        if not cbz_path.is_file():
+            return jsonify({"error": "Fichier CBZ introuvable"}), 400
+
+        try:
+            cbz_path.unlink()
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+        log_action("undo_convert", {
+            "deleted": str(cbz_path),
+            "original_source": data.get("source", ""),
+        })
+        return jsonify({"success": True})
+
+    else:
+        return jsonify({"error": "Action non réversible"}), 400
+
+
 @app.route("/api/template-preview", methods=["POST"])
 def api_template_preview():
     data = request.get_json()

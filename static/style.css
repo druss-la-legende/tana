@@ -1646,6 +1646,44 @@ td.col-search-ext {
     font-weight: 600;
 }
 
+.col-history-undo {
+    width: 80px;
+    text-align: right;
+}
+
+.btn-history-undo {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: var(--bg);
+    color: var(--text-mid);
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.btn-history-undo:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    box-shadow: none;
+}
+
+.btn-history-undo:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.history-action-undo_organize,
+.history-action-undo_fix_naming,
+.history-action-undo_convert {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
 /* --- AUDIT VIEW --- */
 .audit-panel {
     background: var(--bg-surface);

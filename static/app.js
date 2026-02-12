@@ -1288,9 +1288,16 @@ async function loadHistory() {
     }
 }
 
+function isReversible(h) {
+    if (h.action === "organize" || h.action === "organize_batch") return true;
+    if (h.action === "fix_naming") return true;
+    if (h.action === "convert" && h.deleted_original === false) return true;
+    return false;
+}
+
 function renderHistory() {
     if (historyData.length === 0) {
-        historyTbody.innerHTML = `<tr class="empty-row"><td colspan="4">${t("history.empty")}</td></tr>`;
+        historyTbody.innerHTML = `<tr class="empty-row"><td colspan="5">${t("history.empty")}</td></tr>`;
         return;
     }
 
@@ -1302,9 +1309,12 @@ function renderHistory() {
         fix_naming: t("history.action.fix_naming"),
         convert: t("history.action.convert"),
         upload: t("history.action.upload"),
+        undo_organize: t("history.action.undo_organize"),
+        undo_fix_naming: t("history.action.undo_fix_naming"),
+        undo_convert: t("history.action.undo_convert"),
     };
 
-    historyTbody.innerHTML = historyData.map((h) => {
+    historyTbody.innerHTML = historyData.map((h, i) => {
         const label = actionLabels[h.action] || h.action;
         const ts = h.timestamp.replace("T", " ");
         let detail = "";
@@ -1318,13 +1328,20 @@ function renderHistory() {
             detail = `${escHtml(h.source || "")} &rarr; ${escHtml(h.destination || "")}`;
         } else if (h.action === "upload") {
             detail = escHtml(h.filename || "");
+        } else if (h.action.startsWith("undo_")) {
+            detail = escHtml(h.source || h.deleted || h.current || "");
         }
+
+        const undoBtn = isReversible(h)
+            ? `<button class="btn-history-undo" type="button" data-entry-index="${i}">${t("history.undo")}</button>`
+            : "";
 
         return `<tr class="history-row">
             <td class="col-history-time">${escHtml(ts)}</td>
             <td class="col-history-action"><span class="history-action-badge history-action-${h.action}">${escHtml(label)}</span></td>
             <td class="col-history-detail">${detail}</td>
             <td class="col-history-series">${escHtml(h.series || "")}</td>
+            <td class="col-history-undo">${undoBtn}</td>
         </tr>`;
     }).join("");
 }
@@ -1335,6 +1352,43 @@ historyFilterSelect.addEventListener("change", () => {
 });
 
 btnRefreshHistory.addEventListener("click", loadHistory);
+
+historyTbody.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".btn-history-undo");
+    if (!btn || btn.disabled) return;
+
+    const idx = parseInt(btn.dataset.entryIndex);
+    const entry = historyData[idx];
+    if (!entry) return;
+
+    if (!confirm(t("history.undo_confirm"))) return;
+
+    btn.disabled = true;
+    btn.textContent = "...";
+
+    try {
+        const res = await fetch("/api/undo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(entry),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            showToast(data.error || t("history.undo_error"), "error");
+            return;
+        }
+        if (data.success) {
+            showToast(t("history.undo_success"), "success");
+            await loadHistory();
+            await scanFiles();
+        }
+    } catch {
+        showToast(t("history.undo_error"), "error");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = t("history.undo");
+    }
+});
 
 // ─── AUDIT ──────────────────────────────────────────────
 async function runAudit() {
