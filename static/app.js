@@ -1421,36 +1421,87 @@ btnRunAudit.addEventListener("click", runAudit);
 
 // ─── CONVERT CBR → CBZ ─────────────────────────────────
 
-convertPathInput.addEventListener("input", () => {
-    const val = convertPathInput.value.trim().toLowerCase();
-    if (!val) {
-        convertPathSuggestions.style.display = "none";
+let convertSeriesFolders = [];
+
+async function loadSeriesFolders(query) {
+    try {
+        const url = query
+            ? `/api/series-folders?q=${encodeURIComponent(query)}`
+            : "/api/series-folders";
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.folders || [];
+    } catch {
+        return [];
+    }
+}
+
+function renderConvertSuggestions(folders, query) {
+    if (folders.length === 0 && !query) {
+        // Fallback: show destinations
+        if (appConfig.destinations.length > 0) {
+            convertPathSuggestions.innerHTML = appConfig.destinations
+                .map((d) => `<div class="convert-suggestion-item" data-path="${escHtml(d)}"><span class="convert-sugg-name">${escHtml(d)}</span></div>`)
+                .join("");
+            convertPathSuggestions.style.display = "block";
+        } else {
+            convertPathSuggestions.style.display = "none";
+        }
         return;
     }
-    const dests = appConfig.destinations.filter((d) => d.toLowerCase().includes(val));
-    if (dests.length === 0) {
-        convertPathSuggestions.style.display = "none";
+    if (folders.length === 0) {
+        // Also show matching destinations as fallback
+        const dests = appConfig.destinations.filter((d) => d.toLowerCase().includes(query.toLowerCase()));
+        if (dests.length > 0) {
+            convertPathSuggestions.innerHTML = dests
+                .map((d) => `<div class="convert-suggestion-item" data-path="${escHtml(d)}"><span class="convert-sugg-name">${escHtml(d)}</span></div>`)
+                .join("");
+            convertPathSuggestions.style.display = "block";
+        } else {
+            convertPathSuggestions.style.display = "none";
+        }
         return;
     }
-    convertPathSuggestions.innerHTML = dests
-        .map((d) => `<div class="convert-suggestion-item">${escHtml(d)}</div>`)
+    convertPathSuggestions.innerHTML = folders
+        .slice(0, 50)
+        .map((f) => `<div class="convert-suggestion-item" data-path="${escHtml(f.path)}"><span class="convert-sugg-name">${escHtml(f.name)}</span> <span class="convert-sugg-dest">${escHtml(f.dest_label)}</span></div>`)
         .join("");
-    convertPathSuggestions.style.display = "";
+    convertPathSuggestions.style.display = "block";
+}
+
+let convertSuggTimeout = null;
+
+convertPathInput.addEventListener("input", () => {
+    const val = convertPathInput.value.trim();
+    clearTimeout(convertSuggTimeout);
+    if (!val) {
+        renderConvertSuggestions([], "");
+        return;
+    }
+    convertSuggTimeout = setTimeout(async () => {
+        const folders = await loadSeriesFolders(val);
+        renderConvertSuggestions(folders, val);
+    }, 200);
 });
 
 convertPathInput.addEventListener("focus", () => {
-    if (!convertPathInput.value.trim() && appConfig.destinations.length > 0) {
-        convertPathSuggestions.innerHTML = appConfig.destinations
-            .map((d) => `<div class="convert-suggestion-item">${escHtml(d)}</div>`)
-            .join("");
-        convertPathSuggestions.style.display = "";
+    const val = convertPathInput.value.trim();
+    if (!val) {
+        renderConvertSuggestions([], "");
+    } else {
+        clearTimeout(convertSuggTimeout);
+        convertSuggTimeout = setTimeout(async () => {
+            const folders = await loadSeriesFolders(val);
+            renderConvertSuggestions(folders, val);
+        }, 200);
     }
 });
 
 convertPathSuggestions.addEventListener("click", (e) => {
     const item = e.target.closest(".convert-suggestion-item");
     if (item) {
-        convertPathInput.value = item.textContent;
+        convertPathInput.value = item.dataset.path;
         convertPathSuggestions.style.display = "none";
     }
 });
@@ -1539,6 +1590,16 @@ convertSelectAll.addEventListener("change", () => {
     updateConvertButton();
 });
 
+function setConvertRowStatus(path, html, cls) {
+    const checkbox = convertTbody.querySelector(`.convert-check[data-path="${CSS.escape(path)}"]`);
+    if (!checkbox) return;
+    const row = checkbox.closest("tr");
+    if (!row) return;
+    const statusCell = row.querySelector("td:last-child");
+    if (statusCell) statusCell.innerHTML = html;
+    if (cls) row.className = cls;
+}
+
 async function convertSelected() {
     const checked = getConvertChecked();
     if (checked.length === 0) return;
@@ -1547,8 +1608,13 @@ async function convertSelected() {
     const deleteOriginal = convertDeleteOriginal.checked;
 
     btnConvert.disabled = true;
-    convertProgress.style.display = "";
+    convertProgress.style.display = "block";
     convertProgressText.textContent = t("convert.progress_detail", { count: items.length });
+
+    // Mark all selected rows as "converting"
+    items.forEach((item) => {
+        setConvertRowStatus(item.path, `<span class="convert-status-progress">${t("convert.progress")}</span>`, "convert-row");
+    });
 
     try {
         const res = await fetch("/api/convert", {
@@ -1566,9 +1632,20 @@ async function convertSelected() {
             if (successes.length > 0) {
                 showToast(t("convert.success", { count: successes.length }), "success");
             }
-            errors.forEach((err) => showToast(`${err.source}: ${err.error}`, "error"));
+            // Update each row with its result
+            data.results.forEach((r, i) => {
+                const filePath = items[i]?.path;
+                if (!filePath) return;
+                if (r.success) {
+                    setConvertRowStatus(filePath, `<span class="convert-status-ok">${t("convert.status.ok")}</span>`, "convert-row convert-row-exists");
+                } else if (r.error) {
+                    setConvertRowStatus(filePath, `<span class="convert-status-error" title="${escHtml(r.error)}">${escHtml(r.error)}</span>`, "convert-row convert-row-error");
+                }
+            });
+            if (errors.length > 0) {
+                errors.forEach((err) => showToast(`${err.source}: ${err.error}`, "error"));
+            }
         }
-        await scanCbr();
     } catch {
         showToast(t("convert.error"), "error");
     } finally {

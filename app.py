@@ -880,6 +880,27 @@ def convert_cbr_to_cbz(cbr_path: Path, delete_original: bool = False) -> Path:
     return cbz_path
 
 
+@app.route("/api/series-folders")
+def api_series_folders():
+    """Return all series folders across all destinations (for convert path picker)."""
+    q = request.args.get("q", "").strip().lower()
+    existing = get_existing_series()
+    folders = []
+    for _key, entries in existing.items():
+        for entry in entries:
+            folder_path = str(Path(entry["destination"]) / entry["name"])
+            folders.append({
+                "name": entry["name"],
+                "path": folder_path,
+                "dest_label": entry["dest_label"],
+            })
+    folders.sort(key=lambda f: f["name"].lower())
+    if q:
+        q_norm = normalize(q)
+        folders = [f for f in folders if q in f["name"].lower() or q_norm in normalize(f["name"])]
+    return jsonify({"folders": folders})
+
+
 @app.route("/api/scan-cbr")
 def api_scan_cbr():
     scan_path = request.args.get("path", "").strip()

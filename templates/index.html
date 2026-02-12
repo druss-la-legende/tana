@@ -285,9 +285,9 @@
 
                 <div class="convert-controls">
                     <div class="convert-path-wrap">
-                        <label class="config-label" data-i18n="convert.dir_label">Dossier &#224; scanner</label>
+                        <label class="config-label" data-i18n="convert.dir_label">S&#233;rie ou dossier &#224; scanner</label>
                         <div class="convert-path-input-wrap">
-                            <input type="text" id="convert-path" data-i18n-placeholder="convert.dir_placeholder" placeholder="/chemin/vers/dossier" class="config-input" autocomplete="off">
+                            <input type="text" id="convert-path" data-i18n-placeholder="convert.dir_placeholder" placeholder="Rechercher une s&#233;rie..." class="config-input" autocomplete="off">
                             <div class="convert-path-suggestions" id="convert-path-suggestions"></div>
                         </div>
                         <button id="btn-scan-cbr" type="button" class="btn-config-add" data-i18n="convert.btn.scan">Scanner</button>
@@ -328,7 +328,7 @@
         <div class="toast-container" id="toast-container"></div>
     </main>
 
-    <script src="{{ url_for('static', filename='i18n.js') }}"></script>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script src="{{ url_for('static', filename='i18n.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=4"></script>
 </body>
 </html>

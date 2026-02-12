@@ -174,8 +174,8 @@ const TRANSLATIONS = {
 
     // Convert
     "convert.title": "Convertir CBR \u2192 CBZ",
-    "convert.dir_label": "Dossier \u00e0 scanner",
-    "convert.dir_placeholder": "/chemin/vers/dossier",
+    "convert.dir_label": "S\u00e9rie ou dossier \u00e0 scanner",
+    "convert.dir_placeholder": "Rechercher une s\u00e9rie...",
     "convert.btn.scan": "Scanner",
     "convert.btn.scanning": "Scan...",
     "convert.delete_original": "Supprimer les CBR apr\u00e8s conversion",
@@ -195,6 +195,7 @@ const TRANSLATIONS = {
     "convert.error.path_required": "Entrez un chemin de dossier",
     "convert.error.scan": "Erreur lors du scan",
     "convert.files_label": "{count} fichiers",
+    "convert.status.ok": "Converti",
   },
   en: {
     // Header
@@ -370,8 +371,8 @@ const TRANSLATIONS = {
 
     // Convert
     "convert.title": "Convert CBR \u2192 CBZ",
-    "convert.dir_label": "Directory to scan",
-    "convert.dir_placeholder": "/path/to/directory",
+    "convert.dir_label": "Series or directory to scan",
+    "convert.dir_placeholder": "Search a series...",
     "convert.btn.scan": "Scan",
     "convert.btn.scanning": "Scanning...",
     "convert.delete_original": "Delete CBR files after conversion",
@@ -391,6 +392,7 @@ const TRANSLATIONS = {
     "convert.error.path_required": "Enter a directory path",
     "convert.error.scan": "Error during scan",
     "convert.files_label": "{count} files",
+    "convert.status.ok": "Converted",
   },
 };
 

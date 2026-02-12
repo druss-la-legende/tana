@@ -1850,7 +1850,7 @@ td.col-search-ext {
     border: 1px solid var(--border);
     border-top: none;
     border-radius: 0 0 6px 6px;
-    max-height: 200px;
+    max-height: 300px;
     overflow-y: auto;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -1859,12 +1859,33 @@ td.col-search-ext {
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
     cursor: pointer;
-    font-family: var(--font-mono);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
 }
 
 .convert-suggestion-item:hover {
     background: var(--accent);
     color: #fff;
+}
+
+.convert-suggestion-item:hover .convert-sugg-dest {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.convert-sugg-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.convert-sugg-dest {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .convert-options {
@@ -1946,6 +1967,17 @@ td.col-search-ext {
 .convert-status-error {
     font-size: 0.75rem;
     color: var(--error);
+    word-break: break-word;
+}
+
+.convert-status-progress {
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-style: italic;
+}
+
+.convert-row-error {
+    background: rgba(255, 80, 80, 0.08);
 }
 
 .convert-actions {
