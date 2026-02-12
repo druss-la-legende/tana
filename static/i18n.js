@@ -225,6 +225,15 @@ const TRANSLATIONS = {
     "files.filter.duplicates": "Doublons",
     "files.duplicate_badge": "doublon",
     "files.duplicate_title": "Ce fichier existe d\u00e9j\u00e0 dans la destination",
+
+    // Triage
+    "triage.title": "Triage rapide",
+    "triage.btn_open": "Triage rapide",
+    "triage.skip": "Passer",
+    "triage.prev": "Pr\u00e9c\u00e9dent",
+    "triage.no_files": "Aucun fichier \u00e0 trier",
+    "triage.complete": "Triage termin\u00e9 !",
+    "triage.error.incomplete": "S\u00e9rie et destination requises",
   },
   en: {
     // Header
@@ -451,6 +460,15 @@ const TRANSLATIONS = {
     "files.filter.duplicates": "Duplicates",
     "files.duplicate_badge": "duplicate",
     "files.duplicate_title": "This file already exists at destination",
+
+    // Triage
+    "triage.title": "Quick triage",
+    "triage.btn_open": "Quick triage",
+    "triage.skip": "Skip",
+    "triage.prev": "Previous",
+    "triage.no_files": "No files to triage",
+    "triage.complete": "Triage complete!",
+    "triage.error.incomplete": "Series and destination required",
   },
 };
 

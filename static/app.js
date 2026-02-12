@@ -80,7 +80,7 @@ const convertProgressText = document.getElementById("convert-progress-text");
 let filesData = [];
 let sortField = null;  // "name", "series", "tome", "size"
 let sortDir = "asc";   // "asc" or "desc"
-let filterMatch = "all"; // "all", "matched", "suggested", "unmatched"
+let filterMatch = "all"; // "all", "matched", "suggested", "unmatched", "duplicates"
 
 let convertData = [];
 
@@ -89,6 +89,33 @@ let auditFilter = "all";
 let auditSearch = "";
 let historyData = [];
 let historyFilterAction = "";
+
+// ─── TRIAGE STATE ────────────────────────────────────
+let triageFiles = [];
+let triageIndex = 0;
+let triageOpen = false;
+let triageSearchTimeout = null;
+
+// ─── DOM REFS (triage) ──────────────────────────────
+const triageOverlay = document.getElementById("triage-overlay");
+const triageCounter = document.getElementById("triage-counter");
+const triageFilename = document.getElementById("triage-filename");
+const triageFileSize = document.getElementById("triage-file-size");
+const triageFileExt = document.getElementById("triage-file-ext");
+const triageSeriesGuess = document.getElementById("triage-series-guess");
+const triageConfidence = document.getElementById("triage-confidence");
+const triageSeriesInput = document.getElementById("triage-series");
+const triageDestination = document.getElementById("triage-destination");
+const triageTome = document.getElementById("triage-tome");
+const triageTitle = document.getElementById("triage-title");
+const triageDropdown = document.getElementById("triage-dropdown");
+const triagePreview = document.getElementById("triage-preview");
+const btnTriage = document.getElementById("btn-triage");
+const btnTriageClose = document.getElementById("btn-triage-close");
+const btnTriageOrganize = document.getElementById("btn-triage-organize");
+const btnTriageSkip = document.getElementById("btn-triage-skip");
+const btnTriagePrev = document.getElementById("btn-triage-prev");
+const btnTriageDelete = document.getElementById("btn-triage-delete");
 
 // ─── LANGUAGE ─────────────────────────────────────────
 configLang.addEventListener("change", () => {
@@ -473,6 +500,7 @@ function renderFiles() {
     if (filesData.length === 0) {
         fileTbody.innerHTML = `<tr class="empty-row"><td colspan="9">${t("files.empty")}</td></tr>`;
         fileCount.textContent = t("files.count", { count: 0 });
+        btnTriage.style.display = "none";
         return;
     }
 
@@ -568,6 +596,8 @@ function renderFiles() {
     } else {
         btnOrganizeMatched.style.display = "none";
     }
+
+    btnTriage.style.display = filesData.length > 0 ? "inline-flex" : "none";
 
     if (tableWrap) tableWrap.scrollTop = scrollTop;
 }
@@ -1807,6 +1837,358 @@ async function loadDashboard() {
         // Silent fail, stats stay at "-"
     }
 }
+
+// ─── TRIAGE MODE ────────────────────────────────────────
+
+function openTriage() {
+    triageFiles = getDisplayFiles();
+    if (triageFiles.length === 0) {
+        showToast(t("triage.no_files"), "error");
+        return;
+    }
+    triageIndex = 0;
+    triageOpen = true;
+
+    // Populate destination select
+    triageDestination.innerHTML = `<option value="">${t("action.choose")}</option>`;
+    (appConfig.destinations || []).forEach((dest) => {
+        const label = dest.split("/").pop();
+        const opt = document.createElement("option");
+        opt.value = dest;
+        opt.textContent = label;
+        triageDestination.appendChild(opt);
+    });
+
+    renderTriageFile();
+    triageOverlay.style.display = "block";
+}
+
+function closeTriage() {
+    triageOpen = false;
+    triageOverlay.style.display = "none";
+    triageDropdown.innerHTML = "";
+    triageDropdown.classList.remove("open");
+}
+
+function renderTriageFile() {
+    if (triageIndex < 0 || triageIndex >= triageFiles.length) {
+        closeTriage();
+        showToast(t("triage.complete"), "success");
+        return;
+    }
+
+    const { file: f } = triageFiles[triageIndex];
+
+    // Counter
+    triageCounter.textContent = `${triageIndex + 1} / ${triageFiles.length}`;
+
+    // File info
+    triageFilename.textContent = f.name;
+    triageFileSize.textContent = f.size_human;
+    triageFileExt.textContent = f.extension;
+
+    // Detection
+    triageSeriesGuess.textContent = f.series_guess || t("files.no_series");
+    const score = f.match_score || 0;
+    const pct = Math.round(score * 100);
+    if (score >= 0.9) {
+        triageConfidence.innerHTML = `<span class="conf-badge conf-high" title="${t("files.match_pct", { pct })}">&#10003;</span>`;
+    } else if (score >= 0.6) {
+        triageConfidence.innerHTML = `<span class="conf-badge conf-suggest" title="${t("files.suggestion_pct", { pct })}">?</span>`;
+    } else {
+        triageConfidence.innerHTML = `<span class="conf-badge conf-none" title="${t("files.no_match")}">&#x2015;</span>`;
+    }
+
+    // Pre-fill form from match
+    if (f.series_match) {
+        triageSeriesInput.value = f.series_match.name;
+        triageDestination.value = f.series_match.destination;
+    } else {
+        triageSeriesInput.value = f.series_guess || "";
+        triageDestination.value = "";
+    }
+    triageTome.value = f.tome !== null && f.tome !== undefined ? f.tome : "";
+    triageTitle.value = "";
+
+    // Close any open dropdown
+    triageDropdown.innerHTML = "";
+    triageDropdown.classList.remove("open");
+
+    updateTriagePreview();
+    triageSeriesInput.focus();
+}
+
+function updateTriagePreview() {
+    const series = triageSeriesInput.value.trim();
+    const dest = triageDestination.value;
+    if (!series || !dest) {
+        triagePreview.innerHTML = "";
+        return;
+    }
+
+    const { file: f } = triageFiles[triageIndex];
+    const tome = triageTome.value !== "" ? parseInt(triageTome.value) : null;
+    const title = triageTitle.value.trim();
+    const ext = f.extension;
+
+    let tpl = appConfig.template || "{series} - T{tome:02d}{ext}";
+    let tplNoTome = appConfig.template_no_tome || "{series}{ext}";
+    const destLower = dest.toLowerCase();
+    for (const rule of (appConfig.template_rules || [])) {
+        if (rule.filter && destLower.includes(rule.filter.toLowerCase())) {
+            tpl = rule.template || tpl;
+            tplNoTome = rule.template_no_tome || tplNoTome;
+            break;
+        }
+    }
+
+    const template = tome !== null ? tpl : tplNoTome;
+    const newName = applyTemplateClient(template, series, tome, ext, title);
+    triagePreview.innerHTML = `<span class="triage-preview-label">&rarr;</span> ${escHtml(newName)}`;
+}
+
+async function triageOrganize() {
+    const { file: f, index: dataIndex } = triageFiles[triageIndex];
+    const series = triageSeriesInput.value.trim();
+    const dest = triageDestination.value;
+    const tome = triageTome.value !== "" ? parseInt(triageTome.value) : null;
+    const title = triageTitle.value.trim();
+
+    if (!series || !dest) {
+        showToast(t("triage.error.incomplete"), "error");
+        return;
+    }
+
+    btnTriageOrganize.disabled = true;
+
+    try {
+        const res = await fetch("/api/organize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                series_name: series,
+                destination: dest,
+                source_dir: appConfig.source_dir,
+                force: true,
+                files: [{ source: f.name, tome, title }],
+            }),
+        });
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+
+        if (data.error) {
+            showToast(data.error, "error");
+            return;
+        }
+
+        const r = data.results[0];
+        if (r.success) {
+            showToast(t("organize.added", { name: r.new_name, series }), "success");
+            filesData.splice(dataIndex, 1);
+            triageFiles = getDisplayFiles();
+            if (triageIndex >= triageFiles.length) triageIndex = triageFiles.length - 1;
+            if (triageFiles.length === 0) {
+                closeTriage();
+                renderFiles();
+                showToast(t("triage.complete"), "success");
+                return;
+            }
+            renderTriageFile();
+            renderFiles();
+        } else if (r.error) {
+            showToast(`${f.name}: ${r.error}`, "error");
+        }
+    } catch {
+        showToast(t("organize.error"), "error");
+    } finally {
+        btnTriageOrganize.disabled = false;
+    }
+}
+
+async function triageDelete() {
+    const { file: f, index: dataIndex } = triageFiles[triageIndex];
+
+    try {
+        const res = await fetch("/api/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                source_dir: appConfig.source_dir,
+                filename: f.name,
+            }),
+        });
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+
+        if (data.error) {
+            showToast(data.error, "error");
+            return;
+        }
+
+        filesData.splice(dataIndex, 1);
+        triageFiles = getDisplayFiles();
+        if (triageIndex >= triageFiles.length) triageIndex = triageFiles.length - 1;
+        if (triageFiles.length === 0) {
+            closeTriage();
+            renderFiles();
+            return;
+        }
+        renderTriageFile();
+        renderFiles();
+        showToast(t("delete.deleted", { name: f.name }), "success");
+    } catch {
+        showToast(t("delete.error"), "error");
+    }
+}
+
+// Triage autocomplete
+triageSeriesInput.addEventListener("input", () => {
+    updateTriagePreview();
+    const query = triageSeriesInput.value.trim();
+    clearTimeout(triageSearchTimeout);
+
+    if (query.length < 2) {
+        triageDropdown.innerHTML = "";
+        triageDropdown.classList.remove("open");
+        return;
+    }
+
+    triageSearchTimeout = setTimeout(async () => {
+        try {
+            const res = await fetch(`/api/search-series?q=${encodeURIComponent(query)}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.results.length === 0) {
+                triageDropdown.innerHTML = `<div class="dropdown-empty">${t("scan.no_series")}</div>`;
+            } else {
+                triageDropdown.innerHTML = data.results.slice(0, 30).map((r) =>
+                    `<div class="dropdown-item" data-name="${escHtml(r.name)}" data-dest="${escHtml(r.destination)}">
+                        <span class="dropdown-name">${escHtml(r.name)}</span>
+                        <span class="dropdown-label">${escHtml(r.dest_label)}</span>
+                    </div>`
+                ).join("");
+            }
+            triageDropdown.classList.add("open");
+        } catch {
+            triageDropdown.innerHTML = "";
+            triageDropdown.classList.remove("open");
+        }
+    }, 200);
+});
+
+// Triage dropdown click
+triageDropdown.addEventListener("click", (e) => {
+    const item = e.target.closest(".dropdown-item");
+    if (!item) return;
+    triageSeriesInput.value = item.dataset.name;
+    triageDestination.value = item.dataset.dest;
+    triageDropdown.innerHTML = "";
+    triageDropdown.classList.remove("open");
+    updateTriagePreview();
+});
+
+// Triage dropdown keyboard
+triageSeriesInput.addEventListener("keydown", (e) => {
+    if (!triageDropdown.classList.contains("open")) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            triageOrganize();
+        }
+        return;
+    }
+    const items = triageDropdown.querySelectorAll(".dropdown-item");
+    if (items.length === 0) return;
+
+    const active = triageDropdown.querySelector(".dropdown-item.active");
+    let idx = active ? [...items].indexOf(active) : -1;
+
+    if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (active) active.classList.remove("active");
+        idx = (idx + 1) % items.length;
+        items[idx].classList.add("active");
+        items[idx].scrollIntoView({ block: "nearest" });
+    } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (active) active.classList.remove("active");
+        idx = idx <= 0 ? items.length - 1 : idx - 1;
+        items[idx].classList.add("active");
+        items[idx].scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (active) active.click();
+        else if (items.length > 0) items[0].click();
+    } else if (e.key === "Escape") {
+        e.preventDefault();
+        triageDropdown.innerHTML = "";
+        triageDropdown.classList.remove("open");
+    }
+});
+
+// Triage form change listeners
+triageDestination.addEventListener("change", updateTriagePreview);
+triageTome.addEventListener("input", updateTriagePreview);
+triageTitle.addEventListener("input", updateTriagePreview);
+
+// Triage button events
+btnTriage.addEventListener("click", openTriage);
+btnTriageClose.addEventListener("click", closeTriage);
+btnTriageOrganize.addEventListener("click", triageOrganize);
+btnTriageSkip.addEventListener("click", () => {
+    if (triageIndex < triageFiles.length - 1) {
+        triageIndex++;
+        renderTriageFile();
+    }
+});
+btnTriagePrev.addEventListener("click", () => {
+    if (triageIndex > 0) {
+        triageIndex--;
+        renderTriageFile();
+    }
+});
+btnTriageDelete.addEventListener("click", triageDelete);
+
+// Global triage keyboard
+document.addEventListener("keydown", (e) => {
+    if (!triageOpen) return;
+    const inInput = ["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName);
+
+    if (e.key === "Escape") {
+        e.preventDefault();
+        closeTriage();
+        return;
+    }
+
+    if (e.key === "Enter" && !inInput) {
+        e.preventDefault();
+        triageOrganize();
+        return;
+    }
+
+    if (e.key === "ArrowRight" && !inInput) {
+        e.preventDefault();
+        if (triageIndex < triageFiles.length - 1) {
+            triageIndex++;
+            renderTriageFile();
+        }
+        return;
+    }
+
+    if (e.key === "ArrowLeft" && !inInput) {
+        e.preventDefault();
+        if (triageIndex > 0) {
+            triageIndex--;
+            renderTriageFile();
+        }
+        return;
+    }
+
+    if (e.key === "Delete" && !inInput) {
+        e.preventDefault();
+        triageDelete();
+        return;
+    }
+});
 
 // ─── INIT ──────────────────────────────────────────────
 async function init() {

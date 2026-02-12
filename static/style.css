@@ -2212,3 +2212,396 @@ td.col-search-ext {
 .convert-actions button:not(:disabled):hover {
     filter: brightness(1.1);
 }
+
+/* ─── TRIAGE OVERLAY ────────────────────────────────── */
+
+.triage-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.triage-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+}
+
+.triage-content {
+    position: relative;
+    z-index: 1;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: triage-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes triage-in {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.triage-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elevated);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.triage-header h2 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-high);
+    margin: 0;
+}
+
+.triage-counter {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    margin-left: auto;
+}
+
+.triage-close {
+    padding: 0.3rem 0.6rem;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.triage-close:hover {
+    color: var(--error);
+    border-color: var(--error);
+    background: var(--error-bg);
+    box-shadow: none;
+}
+
+.triage-card {
+    padding: 1.5rem;
+}
+
+.triage-file-info {
+    margin-bottom: 1.25rem;
+}
+
+.triage-filename {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-high);
+    word-break: break-all;
+    line-height: 1.5;
+    margin-bottom: 0.375rem;
+}
+
+.triage-file-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.triage-file-ext {
+    font-family: var(--font-mono);
+    font-weight: 600;
+}
+
+.triage-detection {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.triage-field {
+    margin-bottom: 0.75rem;
+}
+
+.triage-field:last-child {
+    margin-bottom: 0;
+}
+
+.triage-field label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+}
+
+.triage-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.triage-confidence {
+    margin-left: 0.5rem;
+}
+
+.triage-field-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.triage-field-sm {
+    max-width: 100px;
+}
+
+.triage-form input[type="text"],
+.triage-form input[type="number"],
+.triage-form select {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+    color: var(--text-high);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+}
+
+.triage-form input:focus,
+.triage-form select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.triage-form select option {
+    background: var(--bg-surface);
+    color: var(--text);
+}
+
+.triage-search-wrap {
+    position: relative;
+}
+
+.triage-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px var(--shadow);
+    z-index: 50;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.triage-dropdown.open {
+    display: block;
+}
+
+.triage-dropdown .dropdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.825rem;
+    transition: background 0.1s;
+}
+
+.triage-dropdown .dropdown-item:hover,
+.triage-dropdown .dropdown-item.active {
+    background: var(--bg-elevated);
+}
+
+.triage-dropdown .dropdown-name {
+    font-weight: 600;
+    color: var(--text-high);
+}
+
+.triage-dropdown .dropdown-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.triage-dropdown .dropdown-empty {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.triage-preview {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--success);
+    font-weight: 600;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.triage-preview:empty {
+    display: none;
+}
+
+.triage-preview-label {
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-right: 0.5rem;
+}
+
+.triage-actions {
+    display: flex;
+    gap: 0.625rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg-elevated);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.triage-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.triage-btn:active {
+    transform: scale(0.97);
+}
+
+.triage-btn-organize {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    margin-left: auto;
+}
+
+.triage-btn-organize:hover {
+    background: var(--accent-hover);
+}
+
+.triage-btn-organize:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.triage-btn-skip {
+    background: transparent;
+    color: var(--text-mid);
+    border: 1px solid var(--border-bright);
+}
+
+.triage-btn-skip:hover {
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: none;
+}
+
+.triage-btn-delete {
+    background: transparent;
+    color: var(--error);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.triage-btn-delete:hover {
+    background: var(--error-bg);
+    box-shadow: none;
+}
+
+.triage-key {
+    display: inline-block;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    line-height: 1.3;
+    color: var(--text-muted);
+}
+
+.triage-btn-organize .triage-key {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.btn-triage-open {
+    background: var(--bg-elevated);
+    color: var(--text-mid);
+    border: 1px solid var(--border-bright);
+}
+
+.btn-triage-open:hover {
+    color: var(--text-high);
+    border-color: var(--accent);
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .triage-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+
+    .triage-field-row {
+        grid-template-columns: 1fr;
+    }
+
+    .triage-field-sm {
+        max-width: none;
+    }
+
+    .triage-actions {
+        flex-wrap: wrap;
+    }
+
+    .triage-btn-organize {
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
+    }
+}

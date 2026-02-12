@@ -102,6 +102,7 @@
                         </select>
                     </div>
                     <button id="btn-organize-matched" type="button" class="btn-batch" style="display:none" data-i18n="files.btn.organize_matched">Organiser tous les match&#233;s</button>
+                    <button id="btn-triage" type="button" class="btn-batch btn-triage-open" style="display:none" data-i18n="triage.btn_open">Triage rapide</button>
                     <span class="file-count" id="file-count"></span>
                     <button id="btn-refresh-files" type="button" class="btn-config-add" data-i18n-title="files.btn.refresh" title="Rafra&#238;chir">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -406,10 +407,80 @@
             </div>
         </section>
 
+        <!-- TRIAGE OVERLAY -->
+        <div id="triage-overlay" class="triage-overlay" style="display:none">
+            <div class="triage-backdrop"></div>
+            <div class="triage-content">
+                <div class="triage-header">
+                    <h2 data-i18n="triage.title">Triage rapide</h2>
+                    <span class="triage-counter" id="triage-counter"></span>
+                    <button class="triage-close" id="btn-triage-close" type="button" title="Escape">&times;</button>
+                </div>
+                <div class="triage-card" id="triage-card">
+                    <div class="triage-file-info">
+                        <div class="triage-filename" id="triage-filename"></div>
+                        <div class="triage-file-meta">
+                            <span class="triage-file-size" id="triage-file-size"></span>
+                            <span class="triage-file-ext" id="triage-file-ext"></span>
+                        </div>
+                    </div>
+                    <div class="triage-detection">
+                        <div class="triage-field">
+                            <label data-i18n="files.col.series">S&#233;rie d&#233;tect&#233;e</label>
+                            <span id="triage-series-guess" class="triage-value"></span>
+                            <span id="triage-confidence" class="triage-confidence"></span>
+                        </div>
+                    </div>
+                    <div class="triage-form">
+                        <div class="triage-field">
+                            <label data-i18n="action.series_name">Nom de la s&#233;rie</label>
+                            <div class="triage-search-wrap">
+                                <input type="text" id="triage-series" autocomplete="off">
+                                <div class="triage-dropdown" id="triage-dropdown"></div>
+                            </div>
+                        </div>
+                        <div class="triage-field-row">
+                            <div class="triage-field">
+                                <label data-i18n="action.destination">Destination</label>
+                                <select id="triage-destination"></select>
+                            </div>
+                            <div class="triage-field triage-field-sm">
+                                <label data-i18n="files.col.tome">Tome</label>
+                                <input type="number" id="triage-tome" min="0" class="tome-input">
+                            </div>
+                            <div class="triage-field">
+                                <label data-i18n="files.col.title">Titre</label>
+                                <input type="text" id="triage-title" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="triage-preview" id="triage-preview"></div>
+                    </div>
+                </div>
+                <div class="triage-actions">
+                    <button class="triage-btn triage-btn-delete" id="btn-triage-delete" type="button">
+                        <span class="triage-key">Suppr</span>
+                        <span data-i18n="config.delete">Supprimer</span>
+                    </button>
+                    <button class="triage-btn triage-btn-skip" id="btn-triage-prev" type="button">
+                        <span class="triage-key">&larr;</span>
+                        <span data-i18n="triage.prev">Pr&#233;c&#233;dent</span>
+                    </button>
+                    <button class="triage-btn triage-btn-skip" id="btn-triage-skip" type="button">
+                        <span class="triage-key">&rarr;</span>
+                        <span data-i18n="triage.skip">Passer</span>
+                    </button>
+                    <button class="triage-btn triage-btn-organize" id="btn-triage-organize" type="button">
+                        <span class="triage-key">Entr&#233;e</span>
+                        <span data-i18n="action.organize">Organiser</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="toast-container" id="toast-container"></div>
     </main>
 
-    <script src="{{ url_for('static', filename='i18n.js') }}?v=10"></script>
-    <script src="{{ url_for('static', filename='app.js') }}?v=10"></script>
+    <script src="{{ url_for('static', filename='i18n.js') }}?v=11"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=11"></script>
 </body>
 </html>
