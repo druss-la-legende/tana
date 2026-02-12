@@ -55,7 +55,7 @@ Outil web pour organiser automatiquement une collection de manga et BD (CBR, CBZ
 ### Conversion CBR vers CBZ
 
 - **Conversion de fichiers** CBR (RAR) en CBZ (ZIP)
-- **Scan de dossier** avec champ libre et suggestions des destinations configurees
+- **Scan de dossier** avec recherche de serie par nom et autocompletion
 - **Affichage groupe** par serie avec selection individuelle ou globale
 - **Detection des CBZ existants** : fichiers deja convertis grises automatiquement
 - **Option de suppression** des CBR originaux apres conversion
@@ -70,7 +70,7 @@ Outil web pour organiser automatiquement une collection de manga et BD (CBR, CBZ
 
 - **Bilingue** : francais et anglais (choix dans la configuration)
 - **Theme** dark / light
-- **Page de configuration** pour gerer le dossier source, les destinations et les templates depuis l'interface
+- **Page de configuration** pour gerer le dossier source, les destinations, les formats de fichiers et les templates depuis l'interface
 - **5 onglets** : Fichiers, Audit, Historique, Convertir, Configuration
 
 ## Stack
@@ -134,7 +134,9 @@ python -m pytest tests/ -v
 
 ## Formats supportes
 
-`.cbr` `.cbz` `.pdf`
+Par defaut : `.cbr` `.cbz` `.pdf`
+
+Les formats sont configurables depuis l'onglet **Configuration**.
 
 ---
 
@@ -191,7 +193,7 @@ A web tool for automatically organizing manga and comic book collections (CBR, C
 ### CBR to CBZ Conversion
 
 - **File conversion** from CBR (RAR) to CBZ (ZIP)
-- **Folder scanning** with free text input and configured destination suggestions
+- **Folder scanning** with series search by name and autocomplete
 - **Grouped display** by series with individual or global selection
 - **Existing CBZ detection**: already converted files are grayed out
 - **Option to delete** original CBR files after conversion
@@ -206,7 +208,7 @@ A web tool for automatically organizing manga and comic book collections (CBR, C
 
 - **Bilingual**: French and English (configurable in settings)
 - **Dark / light theme**
-- **Settings page** to manage source folder, destinations and templates from the UI
+- **Settings page** to manage source folder, destinations, file formats and templates from the UI
 - **5 tabs**: Files, Audit, History, Convert, Settings
 
 ## Stack
@@ -270,4 +272,6 @@ python -m pytest tests/ -v
 
 ## Supported Formats
 
-`.cbr` `.cbz` `.pdf`
+Default: `.cbr` `.cbz` `.pdf`
+
+Formats are configurable from the **Settings** tab.

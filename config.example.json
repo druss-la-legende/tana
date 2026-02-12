@@ -4,6 +4,7 @@
     "/path/to/manga",
     "/path/to/bd"
   ],
+  "extensions": [".cbr", ".cbz", ".pdf"],
   "template": "{series} - T{tome:02d}{ext}",
   "template_no_tome": "{series}{ext}",
   "template_rules": [],
