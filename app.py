@@ -30,6 +30,7 @@ DEFAULT_CONFIG = {
     "template_no_tome": "{series}{ext}",
     "template_rules": [],  # [{filter: "manga", template: "...", template_no_tome: "..."}]
     "audit_case": "first",  # "ignore", "first", "title"
+    "dashboard_enabled": False,
     "lang": "fr",
 }
 
@@ -587,6 +588,72 @@ def audit_collections() -> dict:
     return results
 
 
+@app.route("/api/dashboard")
+def api_dashboard():
+    """Return collection statistics for the dashboard."""
+    cfg = load_config()
+    extensions = get_extensions(cfg)
+
+    total_series = 0
+    total_volumes = 0
+    total_size = 0
+    by_dest = []
+    format_counts: dict[str, int] = {}
+
+    for dest in cfg["destinations"]:
+        dest_path = Path(dest)
+        if not dest_path.is_dir():
+            continue
+        d_series = 0
+        d_volumes = 0
+        d_size = 0
+        for series_dir in dest_path.iterdir():
+            if not series_dir.is_dir() or series_dir.name.startswith((".", "@")):
+                continue
+            d_series += 1
+            for f in series_dir.iterdir():
+                if f.is_file() and f.suffix.lower() in extensions:
+                    d_volumes += 1
+                    sz = f.stat().st_size
+                    d_size += sz
+                    ext = f.suffix.lower()
+                    format_counts[ext] = format_counts.get(ext, 0) + 1
+        by_dest.append({
+            "label": dest_path.name,
+            "path": dest,
+            "series": d_series,
+            "volumes": d_volumes,
+            "size": d_size,
+            "size_human": format_size(d_size),
+        })
+        total_series += d_series
+        total_volumes += d_volumes
+        total_size += d_size
+
+    # Recent activity (last 7 days)
+    recent_activity = 0
+    history = _load_history()
+    if history:
+        cutoff = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(time.time() - 7 * 86400))
+        recent_activity = sum(1 for h in history if h.get("timestamp", "") >= cutoff)
+
+    by_format = sorted(
+        [{"ext": ext, "count": cnt} for ext, cnt in format_counts.items()],
+        key=lambda x: x["count"],
+        reverse=True,
+    )
+
+    return jsonify({
+        "total_series": total_series,
+        "total_volumes": total_volumes,
+        "total_size": total_size,
+        "total_size_human": format_size(total_size),
+        "by_destination": by_dest,
+        "by_format": by_format,
+        "recent_activity": recent_activity,
+    })
+
+
 @app.route("/api/audit")
 def api_audit():
     results = audit_collections()
@@ -897,6 +964,8 @@ def api_save_config():
     if audit_case not in ("ignore", "first", "title"):
         audit_case = "first"
 
+    dashboard_enabled = bool(data.get("dashboard_enabled", False))
+
     # Normalize extensions: lowercase, ensure leading dot
     raw_exts = data.get("extensions", list(DEFAULT_EXTENSIONS))
     extensions = []
@@ -919,6 +988,7 @@ def api_save_config():
         "template_no_tome": template_no_tome,
         "template_rules": clean_rules,
         "audit_case": audit_case,
+        "dashboard_enabled": dashboard_enabled,
         "lang": lang,
     }
     save_config(cfg)

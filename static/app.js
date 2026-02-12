@@ -44,6 +44,7 @@ const configNewRuleNoTome = document.getElementById("config-new-rule-no-tome");
 const btnAddRule = document.getElementById("btn-add-rule");
 const configLang = document.getElementById("config-lang");
 const configAuditCase = document.getElementById("config-audit-case");
+const configDashboardEnabled = document.getElementById("config-dashboard-enabled");
 const configExtList = document.getElementById("config-ext-list");
 const configNewExt = document.getElementById("config-new-ext");
 const btnAddExt = document.getElementById("btn-add-ext");
@@ -114,6 +115,7 @@ navTabs.forEach((tab) => {
             s.style.display = s.id === `view-${view}` ? "" : "none";
         });
 
+        if (view === "dashboard") loadDashboard();
         if (view === "config") loadConfigUI();
         if (view === "history") loadHistory();
     });
@@ -151,6 +153,7 @@ function loadConfigUI() {
     configTemplateNoTome.value = appConfig.template_no_tome || "{series}{ext}";
     configLang.value = appConfig.lang || "fr";
     configAuditCase.value = appConfig.audit_case || "first";
+    configDashboardEnabled.checked = !!appConfig.dashboard_enabled;
     if (!appConfig.template_rules) appConfig.template_rules = [];
     if (!appConfig.extensions) appConfig.extensions = [".cbr", ".cbz", ".pdf"];
     renderExtList();
@@ -317,6 +320,7 @@ btnSaveConfig.addEventListener("click", async () => {
                 template_no_tome: configTemplateNoTome.value.trim(),
                 template_rules: appConfig.template_rules || [],
                 audit_case: configAuditCase.value,
+                dashboard_enabled: configDashboardEnabled.checked,
                 lang: configLang.value,
             }),
         });
@@ -328,6 +332,8 @@ btnSaveConfig.addEventListener("click", async () => {
         }
         appConfig = data.config;
         populateDestinations();
+        applyDashboardToggle();
+        dashboardLoaded = false;
         showToast(t("config.saved"), "success");
     } catch {
         showToast(t("config.error.save"), "error");
@@ -1719,11 +1725,96 @@ async function convertSelected() {
 btnScanCbr.addEventListener("click", scanCbr);
 btnConvert.addEventListener("click", convertSelected);
 
+// ─── DASHBOARD ──────────────────────────────────────────
+const dashboardTab = document.querySelector('.nav-tab[data-view="dashboard"]');
+const dashboardView = document.getElementById("view-dashboard");
+let dashboardLoaded = false;
+
+function applyDashboardToggle() {
+    const enabled = !!appConfig.dashboard_enabled;
+    dashboardTab.style.display = enabled ? "" : "none";
+    if (!enabled) {
+        // If dashboard is currently visible, switch to files
+        if (dashboardTab.classList.contains("active")) {
+            dashboardTab.classList.remove("active");
+            dashboardView.style.display = "none";
+            const filesTab = document.querySelector('.nav-tab[data-view="files"]');
+            filesTab.classList.add("active");
+            document.getElementById("view-files").style.display = "";
+        }
+    }
+}
+
+async function loadDashboard() {
+    if (dashboardLoaded) return;
+    const statsEl = document.getElementById("dashboard-stats");
+    const destBars = document.getElementById("dash-dest-bars");
+    const formatBars = document.getElementById("dash-format-bars");
+
+    try {
+        const res = await fetch("/api/dashboard");
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+
+        const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+        document.getElementById("dash-series").textContent = fmt(data.total_series);
+        document.getElementById("dash-volumes").textContent = fmt(data.total_volumes);
+        document.getElementById("dash-size").textContent = data.total_size_human;
+        document.getElementById("dash-activity").textContent = fmt(data.recent_activity);
+
+        // Destination bars
+        if (data.by_destination.length === 0) {
+            destBars.innerHTML = `<p class="dashboard-empty">${t("dashboard.empty")}</p>`;
+        } else {
+            const maxVol = Math.max(...data.by_destination.map((d) => d.volumes), 1);
+            destBars.innerHTML = data.by_destination.map((d) => {
+                const pct = Math.round((d.volumes / maxVol) * 100);
+                return `<div class="dashboard-bar-row">
+                    <span class="dashboard-bar-label" title="${escHtml(d.path)}">${escHtml(d.label)}</span>
+                    <div class="dashboard-bar-track"><div class="dashboard-bar-fill" style="width:${pct}%"></div></div>
+                    <span class="dashboard-bar-value">${d.series} ${t("dashboard.series").toLowerCase()}</span>
+                    <span class="dashboard-bar-sub">${d.size_human}</span>
+                </div>`;
+            }).join("");
+        }
+
+        // Format bars
+        if (data.by_format.length === 0) {
+            formatBars.innerHTML = `<p class="dashboard-empty">${t("dashboard.empty")}</p>`;
+        } else {
+            const maxFmt = Math.max(...data.by_format.map((f) => f.count), 1);
+            formatBars.innerHTML = data.by_format.map((f) => {
+                const pct = Math.round((f.count / maxFmt) * 100);
+                return `<div class="dashboard-bar-row">
+                    <span class="dashboard-bar-label">${escHtml(f.ext)}</span>
+                    <div class="dashboard-bar-track"><div class="dashboard-bar-fill" style="width:${pct}%"></div></div>
+                    <span class="dashboard-bar-value">${f.count}</span>
+                </div>`;
+            }).join("");
+        }
+
+        dashboardLoaded = true;
+    } catch {
+        // Silent fail, stats stay at "-"
+    }
+}
+
 // ─── INIT ──────────────────────────────────────────────
 async function init() {
     await loadConfig();
     populateDestinations();
-    await scanFiles();
+    applyDashboardToggle();
+    if (appConfig.dashboard_enabled) {
+        loadDashboard();
+    } else {
+        // Default to files view
+        dashboardTab.classList.remove("active");
+        dashboardView.style.display = "none";
+        const filesTab = document.querySelector('.nav-tab[data-view="files"]');
+        filesTab.classList.add("active");
+        document.getElementById("view-files").style.display = "";
+    }
+    scanFiles();
 }
 
 init();

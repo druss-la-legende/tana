@@ -5,11 +5,23 @@ const TRANSLATIONS = {
     "subtitle": "Organise tes CBR / CBZ / PDF",
 
     // Tabs
+    "tab.dashboard": "Accueil",
     "tab.files": "Fichiers",
     "tab.audit": "Audit",
     "tab.history": "Historique",
     "tab.convert": "Convertir",
     "tab.config": "Configuration",
+
+    // Dashboard
+    "dashboard.title": "Vue d'ensemble",
+    "dashboard.series": "S\u00e9ries",
+    "dashboard.volumes": "Volumes",
+    "dashboard.size": "Taille totale",
+    "dashboard.activity": "Activit\u00e9 (7j)",
+    "dashboard.by_dest": "Par destination",
+    "dashboard.by_format": "Par format",
+    "dashboard.empty": "Aucune collection configur\u00e9e",
+    "dashboard.loading": "Chargement...",
 
     // Files view
     "files.select_all": "Tout s\u00e9lectionner",
@@ -59,6 +71,8 @@ const TRANSLATIONS = {
     "config.extensions_hint": "Extensions de fichiers pris en compte pour le scan et l'audit.",
     "config.error.duplicate_ext": "Cette extension est d\u00e9j\u00e0 dans la liste",
     "config.error.ext_required": "Au moins un format de fichier est requis",
+    "config.dashboard_enabled": "Page d'accueil",
+    "config.dashboard_enabled_hint": "Afficher le dashboard avec les statistiques de la collection",
     "config.audit_case": "Casse du nommage (audit)",
     "config.audit_case_hint": "V\u00e9rification de la casse lors de l'audit de nommage.",
     "config.audit_case.ignore": "Insensible \u00e0 la casse",
@@ -211,11 +225,23 @@ const TRANSLATIONS = {
     "subtitle": "Organize your CBR / CBZ / PDF",
 
     // Tabs
+    "tab.dashboard": "Home",
     "tab.files": "Files",
     "tab.audit": "Audit",
     "tab.history": "History",
     "tab.convert": "Convert",
     "tab.config": "Settings",
+
+    // Dashboard
+    "dashboard.title": "Overview",
+    "dashboard.series": "Series",
+    "dashboard.volumes": "Volumes",
+    "dashboard.size": "Total size",
+    "dashboard.activity": "Activity (7d)",
+    "dashboard.by_dest": "By destination",
+    "dashboard.by_format": "By format",
+    "dashboard.empty": "No collections configured",
+    "dashboard.loading": "Loading...",
 
     // Files view
     "files.select_all": "Select all",
@@ -265,6 +291,8 @@ const TRANSLATIONS = {
     "config.extensions_hint": "File extensions used for scanning and auditing.",
     "config.error.duplicate_ext": "This extension is already in the list",
     "config.error.ext_required": "At least one file format is required",
+    "config.dashboard_enabled": "Home page",
+    "config.dashboard_enabled_hint": "Show dashboard with collection statistics",
     "config.audit_case": "Naming case (audit)",
     "config.audit_case_hint": "Case checking during naming audit.",
     "config.audit_case.ignore": "Case insensitive",
