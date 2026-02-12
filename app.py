@@ -346,8 +346,9 @@ def list_files(source_dir: str) -> list[dict]:
     if not source.is_dir():
         return []
 
+    cfg = load_config()
     existing = get_existing_series()
-    extensions = get_extensions()
+    extensions = get_extensions(cfg)
 
     files = []
     for f in sorted(source.rglob("*")):
@@ -363,15 +364,28 @@ def list_files(source_dir: str) -> list[dict]:
             guessed = detect_series(f.name)
             match, match_score = find_best_match(guessed, existing)
             size = f.stat().st_size
+            tome = detect_tome(f.name)
+            ext = f.suffix.lower()
+
+            # Proactive duplicate detection for high-confidence matches
+            duplicate = False
+            if match is not None and match_score >= 0.9:
+                tpl, tpl_no_tome = get_template_for_dest(cfg, match["destination"])
+                title = detect_title(f.name)
+                new_name = apply_template(tpl, match["name"], int(tome) if tome is not None else None, ext, tpl_no_tome, title)
+                target_path = Path(match["destination"]) / match["name"] / new_name
+                duplicate = target_path.exists()
+
             files.append({
                 "name": rel_name,
                 "size": size,
                 "size_human": format_size(size),
-                "tome": detect_tome(f.name),
-                "extension": f.suffix.lower(),
+                "tome": tome,
+                "extension": ext,
                 "series_guess": guessed,
                 "series_match": match,
                 "match_score": round(match_score, 2),
+                "duplicate": duplicate,
             })
     return files
 

@@ -694,6 +694,34 @@ tbody tr.match-suggestion.selected {
     border-left-color: var(--accent);
 }
 
+/* ─── DUPLICATE BADGE ────────────────────────────────── */
+
+.duplicate-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 3px;
+    vertical-align: middle;
+}
+
+.duplicate-row {
+    background: rgba(251, 191, 36, 0.04);
+}
+
+.duplicate-preview-warn {
+    color: #fbbf24;
+    font-size: 1rem;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
 /* ─── SERIES GUESS ───────────────────────────────────── */
 
 .series-guess {

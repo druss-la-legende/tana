@@ -412,9 +412,11 @@ function buildFileRow(f, i, extraClass = "") {
             ? `<span class="conf-badge conf-suggest" title="${t("files.suggestion_pct", { pct })}">?</span>`
             : `<span class="conf-badge conf-none" title="${t("files.no_match")}">&#x2015;</span>`);
 
-    return `<tr data-index="${i}" class="${confClass}${extraClass ? " " + extraClass : ""}">
+    const dupClass = f.duplicate ? " duplicate-row" : "";
+    const dupBadge = f.duplicate ? `<span class="duplicate-badge" title="${t("files.duplicate_title")}">${t("files.duplicate_badge")}</span>` : "";
+    return `<tr data-index="${i}" class="${confClass}${dupClass}${extraClass ? " " + extraClass : ""}">
         <td class="col-check"><input type="checkbox" class="file-check" data-index="${i}"></td>
-        <td class="col-name"><span class="file-name">${escHtml(baseName)}<span class="file-ext">.${escHtml(ext)}</span></span></td>
+        <td class="col-name"><span class="file-name">${escHtml(baseName)}<span class="file-ext">.${escHtml(ext)}</span></span>${dupBadge}</td>
         <td class="col-series"><span class="series-guess">${escHtml(guess)}</span> ${confBadge}</td>
         <td class="col-search-ext">${guess ? `<a class="btn-ext-search" href="https://www.nautiljon.com/search.php?q=${encodeURIComponent(guess)}" target="_blank" rel="noopener" title="Nautiljon"><span class="ext-label">N</span></a><a class="btn-ext-search" href="https://www.manga-news.com/index.php/recherche/?q=${encodeURIComponent(guess)}" target="_blank" rel="noopener" title="Manga-News"><span class="ext-label">M</span></a>` : ""}</td>
         <td class="col-match">
@@ -440,6 +442,8 @@ function getDisplayFiles() {
         items = items.filter(({ file: f }) => f.series_match && (f.match_score || 0) >= 0.6 && (f.match_score || 0) < 0.9);
     } else if (filterMatch === "unmatched") {
         items = items.filter(({ file: f }) => !f.series_match);
+    } else if (filterMatch === "duplicates") {
+        items = items.filter(({ file: f }) => f.duplicate);
     }
 
     if (sortField) {
@@ -1040,10 +1044,12 @@ function updatePreview() {
         const ext = "." + f.source.split(".").pop();
         const template = f.tome !== null ? tpl : tplNoTome;
         const newName = applyTemplateClient(template, name, f.tome, ext, f.title);
+        const isDup = filesData[f.index] && filesData[f.index].duplicate;
         return `<li>
             <span class="preview-old">${f.source}</span>
             <span class="preview-arrow">&rarr;</span>
             <span class="preview-new">${newName}</span>
+            ${isDup ? `<span class="duplicate-preview-warn" title="${t("files.duplicate_title")}">&#x26A0;</span>` : ""}
         </li>`;
     }).join("");
 }

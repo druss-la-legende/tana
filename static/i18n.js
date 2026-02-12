@@ -220,6 +220,11 @@ const TRANSLATIONS = {
     "convert.files_label": "{count} fichiers",
     "convert.status.ok": "Converti",
     "convert.status.verified": "Converti \u2713 ({count} fichiers)",
+
+    // Duplicates
+    "files.filter.duplicates": "Doublons",
+    "files.duplicate_badge": "doublon",
+    "files.duplicate_title": "Ce fichier existe d\u00e9j\u00e0 dans la destination",
   },
   en: {
     // Header
@@ -441,6 +446,11 @@ const TRANSLATIONS = {
     "convert.files_label": "{count} files",
     "convert.status.ok": "Converted",
     "convert.status.verified": "Converted \u2713 ({count} files)",
+
+    // Duplicates
+    "files.filter.duplicates": "Duplicates",
+    "files.duplicate_badge": "duplicate",
+    "files.duplicate_title": "This file already exists at destination",
   },
 };
 
