@@ -119,8 +119,10 @@ const btnTriageSkip = document.getElementById("btn-triage-skip");
 const btnTriagePrev = document.getElementById("btn-triage-prev");
 const btnTriageDelete = document.getElementById("btn-triage-delete");
 
-// ─── DOM REFS (drop overlay) ────────────────────────
+// ─── DOM REFS (drop overlay & import) ───────────────
 const dropOverlay = document.getElementById("drop-overlay");
+const btnImportFiles = document.getElementById("btn-import-files");
+const fileInputHidden = document.getElementById("file-input-hidden");
 let uploadInProgress = false;
 
 // ─── LANGUAGE ─────────────────────────────────────────
@@ -504,9 +506,17 @@ function renderFiles() {
     const scrollTop = tableWrap ? tableWrap.scrollTop : 0;
 
     if (filesData.length === 0) {
-        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="9">${t("files.empty")}</td></tr>`;
+        const exts = (appConfig.extensions || [".cbr", ".cbz", ".pdf"]).map((e) => e.replace(".", "").toUpperCase()).join(", ");
+        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="9">
+            <div class="empty-dropzone" id="empty-dropzone">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span class="empty-dropzone-title">${t("upload.empty_title")}</span>
+                <span class="empty-dropzone-sub">${t("upload.empty_sub", { exts })}</span>
+            </div>
+        </td></tr>`;
         fileCount.textContent = t("files.count", { count: 0 });
         btnTriage.style.display = "none";
+        document.getElementById("empty-dropzone")?.addEventListener("click", () => fileInputHidden.click());
         return;
     }
 
@@ -2279,6 +2289,38 @@ document.addEventListener("keydown", (e) => {
         triageDelete();
         return;
     }
+});
+
+// ─── IMPORT BUTTON & FILE PICKER ────────────────────────
+
+btnImportFiles.addEventListener("click", () => {
+    fileInputHidden.accept = (appConfig.extensions || [".cbr", ".cbz", ".pdf"]).join(",");
+    fileInputHidden.click();
+});
+
+fileInputHidden.addEventListener("change", async () => {
+    const files = [...fileInputHidden.files];
+    fileInputHidden.value = "";
+    if (files.length === 0) return;
+
+    const allowedExts = (appConfig.extensions || [".cbr", ".cbz", ".pdf"]).map((x) => x.toLowerCase());
+    const validFiles = [];
+    const rejected = [];
+
+    for (const f of files) {
+        const ext = "." + f.name.split(".").pop().toLowerCase();
+        if (allowedExts.includes(ext)) {
+            validFiles.push(f);
+        } else {
+            rejected.push(f.name);
+        }
+    }
+
+    if (rejected.length > 0) {
+        showToast(t("upload.rejected", { count: rejected.length, exts: allowedExts.join(", ") }), "error");
+    }
+    if (validFiles.length === 0) return;
+    await uploadFiles(validFiles);
 });
 
 // ─── DRAG & DROP UPLOAD ─────────────────────────────────

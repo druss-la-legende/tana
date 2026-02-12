@@ -242,6 +242,10 @@ const TRANSLATIONS = {
 
     // Upload
     "upload.drop_here": "D\u00e9poser les fichiers ici",
+    "upload.drop_formats": "CBR, CBZ, PDF",
+    "upload.btn_import": "Importer",
+    "upload.empty_title": "Glissez vos fichiers ici ou cliquez pour importer",
+    "upload.empty_sub": "Formats accept\u00e9s : {exts}",
     "upload.uploading": "Import de {count} fichier(s)...",
     "upload.success": "{count} fichier(s) import\u00e9(s)",
     "upload.error": "Erreur lors de l'import",
@@ -500,6 +504,10 @@ const TRANSLATIONS = {
 
     // Upload
     "upload.drop_here": "Drop files here",
+    "upload.drop_formats": "CBR, CBZ, PDF",
+    "upload.btn_import": "Import",
+    "upload.empty_title": "Drag files here or click to import",
+    "upload.empty_sub": "Accepted formats: {exts}",
     "upload.uploading": "Uploading {count} file(s)...",
     "upload.success": "{count} file(s) imported",
     "upload.error": "Error during upload",

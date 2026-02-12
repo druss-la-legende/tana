@@ -371,6 +371,29 @@ button:disabled {
     cursor: not-allowed;
 }
 
+.btn-import {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+}
+
+.btn-import:hover {
+    background: var(--accent-hover);
+}
+
+.btn-import svg {
+    stroke: #fff;
+}
+
 .file-count {
     font-size: 0.8rem;
     font-weight: 600;
@@ -581,9 +604,50 @@ td.col-size {
 .empty-row td {
     text-align: center;
     color: var(--text-muted);
-    padding: 4rem 1rem;
+    padding: 1rem;
     font-size: 0.9rem;
     font-style: italic;
+}
+
+.empty-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 3rem 2rem;
+    margin: 1rem auto;
+    max-width: 400px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.empty-dropzone:hover {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+}
+
+.empty-dropzone svg {
+    stroke: var(--text-muted);
+    transition: stroke 0.2s;
+}
+
+.empty-dropzone:hover svg {
+    stroke: var(--accent);
+}
+
+.empty-dropzone-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-high);
+    font-style: normal;
+}
+
+.empty-dropzone-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: normal;
 }
 
 /* ─── TOME INPUT ─────────────────────────────────────── */
@@ -1236,6 +1300,13 @@ td.col-search-ext {
     font-weight: 700;
     color: var(--text-high);
     margin: 0;
+}
+
+.drop-overlay-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0.05em;
 }
 
 @keyframes drop-pulse {
