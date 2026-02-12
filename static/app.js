@@ -1706,7 +1706,10 @@ async function convertSelected() {
                 const filePath = items[i]?.path;
                 if (!filePath) return;
                 if (r.success) {
-                    setConvertRowStatus(filePath, `<span class="convert-status-ok">${t("convert.status.ok")}</span>`, "convert-row convert-row-exists");
+                    const statusText = r.verified
+                        ? t("convert.status.verified", { count: r.files_count })
+                        : t("convert.status.ok");
+                    setConvertRowStatus(filePath, `<span class="convert-status-ok">${statusText}</span>`, "convert-row convert-row-exists");
                 } else if (r.error) {
                     setConvertRowStatus(filePath, `<span class="convert-status-error" title="${escHtml(r.error)}">${escHtml(r.error)}</span>`, "convert-row convert-row-error");
                 }

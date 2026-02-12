@@ -996,8 +996,8 @@ def api_save_config():
     return jsonify({"success": True, "config": cfg})
 
 
-def convert_cbr_to_cbz(cbr_path: Path, delete_original: bool = False) -> Path:
-    """Convert a .cbr (RAR) file to .cbz (ZIP). Returns the path of the created .cbz."""
+def convert_cbr_to_cbz(cbr_path: Path, delete_original: bool = False) -> dict:
+    """Convert a .cbr (RAR) file to .cbz (ZIP) with post-conversion integrity check."""
     cbz_path = cbr_path.with_suffix(".cbz")
     if cbz_path.exists():
         raise FileExistsError(f"{cbz_path.name} existe déjà")
@@ -1006,17 +1006,46 @@ def convert_cbr_to_cbz(cbr_path: Path, delete_original: bool = False) -> Path:
         with rarfile.RarFile(str(cbr_path)) as rf:
             rf.extractall(tmp)
 
+        # Collect extracted files
+        extracted_files = []
+        for root, _dirs, fnames in os.walk(tmp):
+            for fname in sorted(fnames):
+                extracted_files.append(Path(root) / fname)
+        extracted_count = len(extracted_files)
+
+        if extracted_count == 0:
+            raise ValueError(f"Aucun fichier extrait de {cbr_path.name}")
+
+        # Create ZIP
         with zipfile.ZipFile(str(cbz_path), "w", zipfile.ZIP_STORED) as zf:
-            for root, _dirs, fnames in os.walk(tmp):
-                for fname in sorted(fnames):
-                    fpath = Path(root) / fname
-                    arcname = str(fpath.relative_to(tmp))
-                    zf.write(fpath, arcname)
+            for fpath in extracted_files:
+                arcname = str(fpath.relative_to(tmp))
+                zf.write(fpath, arcname)
+
+        # Integrity verification
+        try:
+            with zipfile.ZipFile(str(cbz_path), "r") as zf:
+                bad_file = zf.testzip()
+                if bad_file is not None:
+                    raise ValueError(f"Fichier corrompu dans le CBZ: {bad_file}")
+                cbz_count = len([i for i in zf.infolist() if not i.is_dir()])
+                if cbz_count != extracted_count:
+                    raise ValueError(f"Nombre de fichiers incorrect: {cbz_count} vs {extracted_count} attendus")
+        except zipfile.BadZipFile as e:
+            cbz_path.unlink(missing_ok=True)
+            raise ValueError(f"CBZ invalide: {e}")
+        except ValueError:
+            cbz_path.unlink(missing_ok=True)
+            raise
+
+        if cbz_path.stat().st_size == 0:
+            cbz_path.unlink(missing_ok=True)
+            raise ValueError("Le fichier CBZ créé est vide")
 
         if delete_original:
             cbr_path.unlink()
 
-    return cbz_path
+    return {"cbz_path": cbz_path, "verified": True, "files_count": cbz_count}
 
 
 @app.route("/api/series-folders")
@@ -1104,16 +1133,21 @@ def api_convert():
             continue
 
         try:
-            cbz_path = convert_cbr_to_cbz(cbr_path, delete_original)
+            result = convert_cbr_to_cbz(cbr_path, delete_original)
+            cbz_path = result["cbz_path"]
             results.append({
                 "source": cbr_path.name,
                 "destination": cbz_path.name,
                 "success": True,
+                "verified": result["verified"],
+                "files_count": result["files_count"],
             })
             log_action("convert", {
                 "source": str(cbr_path),
                 "destination": str(cbz_path),
                 "deleted_original": delete_original,
+                "verified": result["verified"],
+                "files_count": result["files_count"],
             })
         except Exception as e:
             results.append({"source": cbr_path.name, "error": str(e)})

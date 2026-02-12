@@ -219,6 +219,7 @@ const TRANSLATIONS = {
     "convert.error.scan": "Erreur lors du scan",
     "convert.files_label": "{count} fichiers",
     "convert.status.ok": "Converti",
+    "convert.status.verified": "Converti \u2713 ({count} fichiers)",
   },
   en: {
     // Header
@@ -439,6 +440,7 @@ const TRANSLATIONS = {
     "convert.error.scan": "Error during scan",
     "convert.files_label": "{count} files",
     "convert.status.ok": "Converted",
+    "convert.status.verified": "Converted \u2713 ({count} files)",
   },
 };
 
