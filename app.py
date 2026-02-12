@@ -25,6 +25,7 @@ CONFIG_PATH = Path(__file__).parent / "config.json"
 DEFAULT_CONFIG = {
     "source_dir": "/path/to/incoming",
     "destinations": [],
+    "extensions": [".cbr", ".cbz", ".pdf"],
     "template": "{series} - T{tome:02d}{ext}",
     "template_no_tome": "{series}{ext}",
     "template_rules": [],  # [{filter: "manga", template: "...", template_no_tome: "..."}]
@@ -33,7 +34,17 @@ DEFAULT_CONFIG = {
 
 INVALID_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*\x00]')
 
-EXTENSIONS = {".cbr", ".cbz", ".pdf"}
+DEFAULT_EXTENSIONS = {".cbr", ".cbz", ".pdf"}
+
+
+def get_extensions(cfg: dict | None = None) -> set[str]:
+    """Return the set of allowed file extensions from config (with fallback)."""
+    if cfg is None:
+        cfg = load_config()
+    exts = cfg.get("extensions")
+    if not exts or not isinstance(exts, list):
+        return DEFAULT_EXTENSIONS
+    return {e.lower() for e in exts}
 
 HISTORY_PATH = Path(__file__).parent / "history.json"
 HISTORY_MAX_ENTRIES = 500
@@ -93,6 +104,23 @@ def detect_tome(filename: str) -> int | None:
             return int(match.group(1))
 
     return None
+
+
+_RE_TITLE = re.compile(
+    r"(?i)"
+    r"(?:\btome[\s._-]*\d+|(?<![a-z])T[\s._-]?\d{1,3}(?!\d)|\bvol(?:ume)?[\s._-]*\d+)"
+    r"[\s._-]*[-–—]?\s*(.*)",
+)
+
+
+def detect_title(filename: str) -> str:
+    """Extract the title part from a filename (text after the tome indicator)."""
+    name = Path(filename).stem
+    m = _RE_TITLE.search(name)
+    if m:
+        title = m.group(1).strip().strip("-–— ").strip()
+        return title
+    return ""
 
 
 def detect_series(filename: str) -> str:
@@ -317,6 +345,7 @@ def list_files(source_dir: str) -> list[dict]:
         return []
 
     existing = get_existing_series()
+    extensions = get_extensions()
 
     files = []
     for f in sorted(source.rglob("*")):
@@ -327,7 +356,7 @@ def list_files(source_dir: str) -> list[dict]:
             continue
         if any(part.startswith(".") for part in rel.parts):
             continue
-        if f.is_file() and f.suffix.lower() in EXTENSIONS:
+        if f.is_file() and f.suffix.lower() in extensions:
             rel_name = str(rel) if len(rel.parts) > 1 else f.name
             guessed = detect_series(f.name)
             match, match_score = find_best_match(guessed, existing)
@@ -463,7 +492,7 @@ def _audit_series(series_name: str, dest: str, dest_label: str, files: list[dict
     # Naming issues
     naming_issues = []
     for f in files:
-        expected = apply_template(template, series_name, f["tome"], f["extension"], template_no_tome)
+        expected = apply_template(template, series_name, f["tome"], f["extension"], template_no_tome, f.get("title", ""))
         if f["name"].lower() != expected.lower() or not f["name"][0].isupper():
             naming_issues.append({
                 "current": f["name"],
@@ -496,6 +525,7 @@ def _audit_series(series_name: str, dest: str, dest_label: str, files: list[dict
 def audit_collections() -> dict:
     """Scan all destination folders and return quality audit results."""
     cfg = load_config()
+    extensions = get_extensions(cfg)
 
     results: dict = {"series": [], "summary": {}}
 
@@ -512,12 +542,14 @@ def audit_collections() -> dict:
 
             files = []
             for f in sorted(series_dir.iterdir()):
-                if f.is_file() and f.suffix.lower() in EXTENSIONS:
+                if f.is_file() and f.suffix.lower() in extensions:
                     tome = detect_tome(f.name)
+                    title = detect_title(f.name)
                     size = f.stat().st_size
                     files.append({
                         "name": f.name,
                         "tome": tome,
+                        "title": title,
                         "extension": f.suffix.lower(),
                         "size": size,
                         "size_human": format_size(size),
@@ -844,9 +876,24 @@ def api_save_config():
     if lang not in ("fr", "en"):
         lang = "fr"
 
+    # Normalize extensions: lowercase, ensure leading dot
+    raw_exts = data.get("extensions", list(DEFAULT_EXTENSIONS))
+    extensions = []
+    for ext in raw_exts:
+        ext = ext.strip().lower()
+        if not ext:
+            continue
+        if not ext.startswith("."):
+            ext = "." + ext
+        if ext not in extensions:
+            extensions.append(ext)
+    if not extensions:
+        return jsonify({"error": "Au moins un format de fichier est requis"}), 400
+
     cfg = {
         "source_dir": source_dir,
         "destinations": destinations,
+        "extensions": extensions,
         "template": template,
         "template_no_tome": template_no_tome,
         "template_rules": clean_rules,

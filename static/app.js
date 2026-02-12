@@ -43,6 +43,9 @@ const configNewRuleTemplate = document.getElementById("config-new-rule-template"
 const configNewRuleNoTome = document.getElementById("config-new-rule-no-tome");
 const btnAddRule = document.getElementById("btn-add-rule");
 const configLang = document.getElementById("config-lang");
+const configExtList = document.getElementById("config-ext-list");
+const configNewExt = document.getElementById("config-new-ext");
+const btnAddExt = document.getElementById("btn-add-ext");
 
 // ─── DOM REFS (navigation) ─────────────────────────────
 const navTabs = document.querySelectorAll(".nav-tab");
@@ -111,7 +114,6 @@ navTabs.forEach((tab) => {
         });
 
         if (view === "config") loadConfigUI();
-        if (view === "audit" && !auditData) runAudit();
         if (view === "history") loadHistory();
     });
 });
@@ -148,6 +150,8 @@ function loadConfigUI() {
     configTemplateNoTome.value = appConfig.template_no_tome || "{series}{ext}";
     configLang.value = appConfig.lang || "fr";
     if (!appConfig.template_rules) appConfig.template_rules = [];
+    if (!appConfig.extensions) appConfig.extensions = [".cbr", ".cbz", ".pdf"];
+    renderExtList();
     renderDestList();
     renderRulesList();
     updateTemplatePreview();
@@ -210,6 +214,44 @@ async function updateTemplatePreview() {
 configTemplate.addEventListener("input", updateTemplatePreview);
 configTemplateNoTome.addEventListener("input", updateTemplatePreview);
 
+function renderExtList() {
+    configExtList.innerHTML = "";
+    appConfig.extensions.forEach((ext, i) => {
+        const li = document.createElement("li");
+        li.className = "config-dest-item";
+        li.innerHTML = `
+            <span class="config-dest-path">${escHtml(ext)}</span>
+            <button class="btn-dest-remove" type="button" data-ext-index="${i}" title="${t("config.delete")}">&times;</button>
+        `;
+        configExtList.appendChild(li);
+    });
+}
+
+configExtList.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-dest-remove");
+    if (!btn || btn.dataset.extIndex === undefined) return;
+    const idx = parseInt(btn.dataset.extIndex);
+    appConfig.extensions.splice(idx, 1);
+    renderExtList();
+});
+
+btnAddExt.addEventListener("click", () => {
+    let val = configNewExt.value.trim().toLowerCase();
+    if (!val) return;
+    if (!val.startsWith(".")) val = "." + val;
+    if (appConfig.extensions.includes(val)) {
+        showToast(t("config.error.duplicate_ext"), "error");
+        return;
+    }
+    appConfig.extensions.push(val);
+    configNewExt.value = "";
+    renderExtList();
+});
+
+configNewExt.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") btnAddExt.click();
+});
+
 function renderDestList() {
     configDestList.innerHTML = "";
     appConfig.destinations.forEach((dest, i) => {
@@ -268,6 +310,7 @@ btnSaveConfig.addEventListener("click", async () => {
             body: JSON.stringify({
                 source_dir: sourceDir,
                 destinations: appConfig.destinations,
+                extensions: appConfig.extensions || [".cbr", ".cbz", ".pdf"],
                 template: configTemplate.value.trim(),
                 template_no_tome: configTemplateNoTome.value.trim(),
                 template_rules: appConfig.template_rules || [],

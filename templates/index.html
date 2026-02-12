@@ -143,6 +143,16 @@
                 </div>
 
                 <div class="config-section">
+                    <label class="config-label" data-i18n="config.extensions">Formats de fichiers</label>
+                    <p class="config-hint" data-i18n="config.extensions_hint">Extensions de fichiers pris en compte pour le scan et l'audit.</p>
+                    <ul id="config-ext-list" class="config-dest-list"></ul>
+                    <div class="config-input-row">
+                        <input type="text" id="config-new-ext" placeholder=".epub" class="config-input" style="max-width:200px">
+                        <button id="btn-add-ext" type="button" class="btn-config-add" data-i18n="config.btn_add">Ajouter</button>
+                    </div>
+                </div>
+
+                <div class="config-section">
                     <label class="config-label" data-i18n="config.destinations">Dossiers de destination</label>
                     <p class="config-hint" data-i18n="config.destinations_hint">Dossiers dans lesquels les s&#233;ries sont organis&#233;es. Ils sont scann&#233;s pour d&#233;tecter les s&#233;ries existantes.</p>
                     <ul id="config-dest-list" class="config-dest-list"></ul>
@@ -328,7 +338,7 @@
         <div class="toast-container" id="toast-container"></div>
     </main>
 
-    <script src="{{ url_for('static', filename='i18n.js') }}?v=4"></script>
-    <script src="{{ url_for('static', filename='app.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='i18n.js') }}?v=5"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=5"></script>
 </body>
 </html>
