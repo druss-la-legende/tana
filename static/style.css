@@ -2263,6 +2263,26 @@ td.col-search-ext {
     filter: brightness(1.1);
 }
 
+.btn-cancel-convert {
+    padding: 0.6rem 1.5rem;
+    background: var(--error) !important;
+    color: #fff !important;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-cancel-convert:hover {
+    filter: brightness(1.1) !important;
+    box-shadow: none !important;
+}
+
+.btn-cancel-convert:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 /* ─── TRIAGE OVERLAY ────────────────────────────────── */
 
 .triage-overlay {

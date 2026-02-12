@@ -220,6 +220,11 @@ const TRANSLATIONS = {
     "convert.files_label": "{count} fichiers",
     "convert.status.ok": "Converti",
     "convert.status.verified": "Converti \u2713 ({count} fichiers)",
+    "convert.progress_n": "Conversion {current}/{total} \u2014 {name}...",
+    "convert.btn.cancel": "Annuler",
+    "convert.cancelling": "Annulation...",
+    "convert.cancelled": "Conversion annul\u00e9e ({done}/{total} trait\u00e9s)",
+    "convert.errors_count": "{count} erreur(s) de conversion",
 
     // Duplicates
     "files.filter.duplicates": "Doublons",
@@ -464,6 +469,11 @@ const TRANSLATIONS = {
     "convert.files_label": "{count} files",
     "convert.status.ok": "Converted",
     "convert.status.verified": "Converted \u2713 ({count} files)",
+    "convert.progress_n": "Converting {current}/{total} \u2014 {name}...",
+    "convert.btn.cancel": "Cancel",
+    "convert.cancelling": "Cancelling...",
+    "convert.cancelled": "Conversion cancelled ({done}/{total} processed)",
+    "convert.errors_count": "{count} conversion error(s)",
 
     // Duplicates
     "files.filter.duplicates": "Duplicates",

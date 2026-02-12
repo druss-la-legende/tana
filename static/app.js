@@ -83,6 +83,8 @@ let sortDir = "asc";   // "asc" or "desc"
 let filterMatch = "all"; // "all", "matched", "suggested", "unmatched", "duplicates"
 
 let convertData = [];
+let convertCancelled = false;
+const btnCancelConvert = document.getElementById("btn-cancel-convert");
 
 let auditData = null;
 let auditFilter = "all";
@@ -1718,58 +1720,86 @@ async function convertSelected() {
 
     const items = checked.map((c) => ({ path: c.dataset.path }));
     const deleteOriginal = convertDeleteOriginal.checked;
+    const total = items.length;
 
+    convertCancelled = false;
     btnConvert.disabled = true;
+    btnConvert.style.display = "none";
+    btnCancelConvert.style.display = "inline-block";
+    btnCancelConvert.disabled = false;
+    btnCancelConvert.textContent = t("convert.btn.cancel");
     convertProgress.style.display = "block";
-    convertProgressText.textContent = t("convert.progress_detail", { count: items.length });
+    convertTbody.querySelectorAll(".convert-check").forEach((c) => c.disabled = true);
+    convertSelectAll.disabled = true;
 
-    // Mark all selected rows as "converting"
-    items.forEach((item) => {
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < total; i++) {
+        if (convertCancelled) break;
+
+        const item = items[i];
+        const filename = item.path.split("/").pop();
+        convertProgressText.textContent = t("convert.progress_n", { current: i + 1, total, name: filename });
+
         setConvertRowStatus(item.path, `<span class="convert-status-progress">${t("convert.progress")}</span>`, "convert-row");
-    });
 
-    try {
-        const res = await fetch("/api/convert", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ items, delete_original: deleteOriginal }),
-        });
-        if (!res.ok) throw new Error(res.status);
-        const data = await res.json();
-        if (data.error) {
-            showToast(data.error, "error");
-        } else {
-            const successes = data.results.filter((r) => r.success);
-            const errors = data.results.filter((r) => r.error);
-            if (successes.length > 0) {
-                showToast(t("convert.success", { count: successes.length }), "success");
-            }
-            // Update each row with its result
-            data.results.forEach((r, i) => {
-                const filePath = items[i]?.path;
-                if (!filePath) return;
-                if (r.success) {
+        try {
+            const res = await fetch("/api/convert", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ items: [item], delete_original: deleteOriginal }),
+            });
+            if (!res.ok) throw new Error(res.status);
+            const data = await res.json();
+
+            if (data.error) {
+                setConvertRowStatus(item.path, `<span class="convert-status-error">${escHtml(data.error)}</span>`, "convert-row convert-row-error");
+                errorCount++;
+            } else {
+                const r = data.results[0];
+                if (r && r.success) {
                     const statusText = r.verified
                         ? t("convert.status.verified", { count: r.files_count })
                         : t("convert.status.ok");
-                    setConvertRowStatus(filePath, `<span class="convert-status-ok">${statusText}</span>`, "convert-row convert-row-exists");
-                } else if (r.error) {
-                    setConvertRowStatus(filePath, `<span class="convert-status-error" title="${escHtml(r.error)}">${escHtml(r.error)}</span>`, "convert-row convert-row-error");
+                    setConvertRowStatus(item.path, `<span class="convert-status-ok">${statusText}</span>`, "convert-row convert-row-exists");
+                    successCount++;
+                } else if (r && r.error) {
+                    setConvertRowStatus(item.path, `<span class="convert-status-error" title="${escHtml(r.error)}">${escHtml(r.error)}</span>`, "convert-row convert-row-error");
+                    errorCount++;
                 }
-            });
-            if (errors.length > 0) {
-                errors.forEach((err) => showToast(`${err.source}: ${err.error}`, "error"));
             }
+        } catch {
+            setConvertRowStatus(item.path, `<span class="convert-status-error">${t("convert.error")}</span>`, "convert-row convert-row-error");
+            errorCount++;
         }
-    } catch {
-        showToast(t("convert.error"), "error");
-    } finally {
-        convertProgress.style.display = "none";
     }
+
+    convertProgress.style.display = "none";
+    btnCancelConvert.style.display = "none";
+    btnConvert.style.display = "";
+    btnConvert.disabled = false;
+    convertSelectAll.disabled = false;
+
+    if (convertCancelled) {
+        showToast(t("convert.cancelled", { done: successCount + errorCount, total }), "success");
+    } else if (successCount > 0) {
+        showToast(t("convert.success", { count: successCount }), "success");
+    }
+    if (errorCount > 0) {
+        showToast(t("convert.errors_count", { count: errorCount }), "error");
+    }
+
+    updateConvertButton();
 }
 
 btnScanCbr.addEventListener("click", scanCbr);
 btnConvert.addEventListener("click", convertSelected);
+btnCancelConvert.addEventListener("click", () => {
+    convertCancelled = true;
+    btnCancelConvert.disabled = true;
+    btnCancelConvert.textContent = t("convert.cancelling");
+});
 
 // ─── DASHBOARD ──────────────────────────────────────────
 const dashboardTab = document.querySelector('.nav-tab[data-view="dashboard"]');
