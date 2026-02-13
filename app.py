@@ -8,6 +8,7 @@ import zipfile
 from collections import Counter
 from pathlib import Path
 
+import fitz  # PyMuPDF
 import rarfile
 from flask import Flask, jsonify, render_template, request
 from unidecode import unidecode
@@ -1346,6 +1347,77 @@ def convert_cbr_to_cbz(cbr_path: Path, delete_original: bool = False) -> dict:
     return {"cbz_path": cbz_path, "verified": True, "files_count": cbz_count}
 
 
+def convert_pdf_to_cbz(pdf_path: Path, delete_original: bool = False,
+                        dpi: int = 200, image_format: str = "jpeg",
+                        jpeg_quality: int = 90) -> dict:
+    """Convert a .pdf file to .cbz by rendering pages to images."""
+    cbz_path = pdf_path.with_suffix(".cbz")
+    if cbz_path.exists():
+        raise FileExistsError(f"{cbz_path.name} existe déjà")
+
+    dpi = max(150, min(300, dpi))
+    jpeg_quality = max(70, min(100, jpeg_quality))
+    if image_format not in ("jpeg", "png"):
+        image_format = "jpeg"
+
+    ext = "jpg" if image_format == "jpeg" else "png"
+    zoom = dpi / 72
+    mat = fitz.Matrix(zoom, zoom)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        doc = fitz.open(str(pdf_path))
+        page_count = len(doc)
+
+        if page_count == 0:
+            doc.close()
+            raise ValueError(f"Aucune page dans {pdf_path.name}")
+
+        extracted_files = []
+        for i in range(page_count):
+            page = doc[i]
+            pix = page.get_pixmap(matrix=mat)
+            page_filename = f"page_{i + 1:04d}.{ext}"
+            page_path = Path(tmp) / page_filename
+            if image_format == "jpeg":
+                pix.save(str(page_path), jpg_quality=jpeg_quality)
+            else:
+                pix.save(str(page_path))
+            extracted_files.append(page_path)
+
+        doc.close()
+        extracted_count = len(extracted_files)
+
+        # Create CBZ
+        with zipfile.ZipFile(str(cbz_path), "w", zipfile.ZIP_STORED) as zf:
+            for fpath in extracted_files:
+                zf.write(fpath, fpath.name)
+
+        # Integrity verification
+        try:
+            with zipfile.ZipFile(str(cbz_path), "r") as zf:
+                bad_file = zf.testzip()
+                if bad_file is not None:
+                    raise ValueError(f"Fichier corrompu dans le CBZ: {bad_file}")
+                cbz_count = len([info for info in zf.infolist() if not info.is_dir()])
+                if cbz_count != extracted_count:
+                    raise ValueError(f"Nombre de fichiers incorrect: {cbz_count} vs {extracted_count} attendus")
+        except zipfile.BadZipFile as e:
+            cbz_path.unlink(missing_ok=True)
+            raise ValueError(f"CBZ invalide: {e}")
+        except ValueError:
+            cbz_path.unlink(missing_ok=True)
+            raise
+
+        if cbz_path.stat().st_size == 0:
+            cbz_path.unlink(missing_ok=True)
+            raise ValueError("Le fichier CBZ créé est vide")
+
+        if delete_original:
+            pdf_path.unlink()
+
+    return {"cbz_path": cbz_path, "verified": True, "files_count": cbz_count, "pages": page_count}
+
+
 @app.route("/api/series-folders")
 def api_series_folders():
     """Return all series folders across all destinations (for convert path picker)."""
@@ -1383,8 +1455,12 @@ def api_scan_cbr():
     if not any(base == a or base.is_relative_to(a) for a in allowed):
         return jsonify({"error": "Ce dossier n'est pas dans une destination configurée"}), 403
 
+    scan_extensions = {".cbr", ".pdf"}
+
     groups: dict[str, dict] = {}
-    for f in sorted(base.rglob("*.cbr")):
+    for f in sorted(base.rglob("*")):
+        if f.suffix.lower() not in scan_extensions:
+            continue
         if any(part.startswith(".") for part in f.relative_to(base).parts):
             continue
         parent = f.parent
@@ -1403,6 +1479,7 @@ def api_scan_cbr():
             "size_human": format_size(f.stat().st_size),
             "tome": detect_tome(f.name),
             "has_cbz": cbz_sibling.exists(),
+            "format": f.suffix.lower().lstrip("."),
         })
 
     return jsonify({"groups": list(groups.values())})
@@ -1426,12 +1503,19 @@ def api_convert():
         if not any(cbr_path.is_relative_to(a) for a in allowed):
             results.append({"source": cbr_path.name, "error": "Chemin non autorisé"})
             continue
-        if not cbr_path.is_file() or cbr_path.suffix.lower() != ".cbr":
-            results.append({"source": str(cbr_path), "error": "Fichier CBR introuvable"})
+        file_ext = cbr_path.suffix.lower()
+        if not cbr_path.is_file() or file_ext not in (".cbr", ".pdf"):
+            results.append({"source": str(cbr_path), "error": "Fichier CBR/PDF introuvable"})
             continue
 
         try:
-            result = convert_cbr_to_cbz(cbr_path, delete_original)
+            if file_ext == ".pdf":
+                pdf_dpi = data.get("dpi", 200)
+                pdf_format = data.get("image_format", "jpeg")
+                pdf_quality = data.get("jpeg_quality", 90)
+                result = convert_pdf_to_cbz(cbr_path, delete_original, pdf_dpi, pdf_format, pdf_quality)
+            else:
+                result = convert_cbr_to_cbz(cbr_path, delete_original)
             cbz_path = result["cbz_path"]
             results.append({
                 "source": cbr_path.name,
@@ -1446,6 +1530,7 @@ def api_convert():
                 "deleted_original": delete_original,
                 "verified": result["verified"],
                 "files_count": result["files_count"],
+                "format": file_ext.lstrip("."),
             })
         except Exception as e:
             results.append({"source": cbr_path.name, "error": str(e)})

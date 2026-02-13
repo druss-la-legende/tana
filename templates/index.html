@@ -375,7 +375,7 @@
         <section id="view-convert" style="display:none">
             <div class="convert-panel">
                 <div class="convert-header">
-                    <h2 data-i18n="convert.title">Convertir CBR &rarr; CBZ</h2>
+                    <h2 data-i18n="convert.title">Convertir CBR/PDF &rarr; CBZ</h2>
                 </div>
 
                 <div class="convert-controls">
@@ -388,7 +388,24 @@
                         <button id="btn-scan-cbr" type="button" class="btn-config-add" data-i18n="convert.btn.scan">Scanner</button>
                     </div>
                     <div class="convert-options">
-                        <label><input type="checkbox" id="convert-delete-original"> <span data-i18n="convert.delete_original">Supprimer les CBR apr&#232;s conversion</span></label>
+                        <label><input type="checkbox" id="convert-delete-original"> <span data-i18n="convert.delete_original">Supprimer les originaux apr&#232;s conversion</span></label>
+                    </div>
+                    <div class="convert-pdf-options" id="convert-pdf-options" style="display:none">
+                        <div class="convert-option-group">
+                            <label data-i18n="convert.dpi_label">R&#233;solution (DPI)</label>
+                            <select id="convert-dpi" class="convert-option-select">
+                                <option value="150">150 DPI</option>
+                                <option value="200" selected>200 DPI</option>
+                                <option value="300">300 DPI</option>
+                            </select>
+                        </div>
+                        <div class="convert-option-group">
+                            <label data-i18n="convert.quality_label">Qualit&#233; JPEG</label>
+                            <div class="convert-quality-wrap">
+                                <input type="range" id="convert-jpeg-quality" min="70" max="100" value="90" class="convert-quality-slider">
+                                <span id="convert-quality-value">90</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

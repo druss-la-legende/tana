@@ -76,6 +76,10 @@ const convertTbody = document.getElementById("convert-tbody");
 const convertSelectAll = document.getElementById("convert-select-all");
 const convertProgress = document.getElementById("convert-progress");
 const convertProgressText = document.getElementById("convert-progress-text");
+const convertDpi = document.getElementById("convert-dpi");
+const convertJpegQuality = document.getElementById("convert-jpeg-quality");
+const convertQualityValue = document.getElementById("convert-quality-value");
+const convertPdfOptions = document.getElementById("convert-pdf-options");
 
 let filesData = [];
 let sortField = null;  // "name", "series", "tome", "size"
@@ -1712,6 +1716,10 @@ document.addEventListener("click", (e) => {
     }
 });
 
+convertJpegQuality.addEventListener("input", () => {
+    convertQualityValue.textContent = convertJpegQuality.value;
+});
+
 async function scanCbr() {
     const scanPath = convertPathInput.value.trim();
     if (!scanPath) {
@@ -1732,6 +1740,9 @@ async function scanCbr() {
             convertData = data.groups;
         }
         renderConvertTable();
+        // Show PDF options if any PDF files were found
+        const hasPdf = convertData.some((g) => g.files.some((f) => f.format === "pdf"));
+        convertPdfOptions.style.display = hasPdf ? "flex" : "none";
     } catch {
         showToast(t("convert.error.scan"), "error");
     } finally {
@@ -1756,9 +1767,12 @@ function renderConvertTable() {
             const rowClass = f.has_cbz ? "convert-row convert-row-exists" : "convert-row";
             const status = f.has_cbz ? `<span class="convert-status-exists">${t("convert.cbz_exists")}</span>` : (f.status || "");
             const tome = f.tome != null ? `T${String(f.tome).padStart(2, "0")}` : "-";
+            const formatBadge = f.format === "pdf"
+                ? `<span class="convert-format-badge convert-format-pdf">PDF</span>`
+                : `<span class="convert-format-badge convert-format-cbr">CBR</span>`;
             html += `<tr class="${rowClass}">
                 <td class="col-check"><input type="checkbox" class="convert-check" data-path="${escHtml(f.path)}" ${disabled}></td>
-                <td>${escHtml(f.name)}</td>
+                <td>${escHtml(f.name)} ${formatBadge}</td>
                 <td>${tome}</td>
                 <td>${f.size_human}</td>
                 <td>${status}</td>
@@ -1834,7 +1848,13 @@ async function convertSelected() {
             const res = await fetch("/api/convert", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ items: [item], delete_original: deleteOriginal }),
+                body: JSON.stringify({
+                    items: [item],
+                    delete_original: deleteOriginal,
+                    dpi: parseInt(convertDpi.value),
+                    image_format: "jpeg",
+                    jpeg_quality: parseInt(convertJpegQuality.value),
+                }),
             });
             if (!res.ok) throw new Error(res.status);
             const data = await res.json();
