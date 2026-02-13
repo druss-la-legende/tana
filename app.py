@@ -1135,6 +1135,14 @@ def api_save_config():
     if not extensions:
         return jsonify({"error": "Au moins un format de fichier est requis"}), 400
 
+    # Path validation warnings (non-blocking)
+    warnings = []
+    if not Path(source_dir).is_dir():
+        warnings.append({"field": "source_dir", "message_key": "config.warning.source_not_found", "path": source_dir})
+    for dest in destinations:
+        if not Path(dest).is_dir():
+            warnings.append({"field": "destination", "message_key": "config.warning.dest_not_found", "path": dest})
+
     cfg = {
         "source_dir": source_dir,
         "destinations": destinations,
@@ -1148,7 +1156,10 @@ def api_save_config():
     }
     save_config(cfg)
     invalidate_series_cache()
-    return jsonify({"success": True, "config": cfg})
+    result = {"success": True, "config": cfg}
+    if warnings:
+        result["warnings"] = warnings
+    return jsonify(result)
 
 
 def convert_cbr_to_cbz(cbr_path: Path, delete_original: bool = False) -> dict:

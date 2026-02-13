@@ -1218,6 +1218,13 @@ td.col-search-ext {
     backdrop-filter: blur(12px);
 }
 
+.toast.warning {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.25);
+    backdrop-filter: blur(12px);
+}
+
 @keyframes toast-in {
     from {
         opacity: 0;

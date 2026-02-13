@@ -369,7 +369,12 @@ btnSaveConfig.addEventListener("click", async () => {
         populateDestinations();
         applyDashboardToggle();
         dashboardLoaded = false;
-        showToast(t("config.saved"), "success");
+        if (data.warnings && data.warnings.length > 0) {
+            data.warnings.forEach((w) => showToast(t(w.message_key, { path: w.path }), "warning"));
+            showToast(t("config.saved_with_warnings"), "success");
+        } else {
+            showToast(t("config.saved"), "success");
+        }
     } catch {
         showToast(t("config.error.save"), "error");
     } finally {

@@ -107,6 +107,9 @@ const TRANSLATIONS = {
     "config.error.dest_required": "Au moins une destination est requise",
     "config.error.save": "Erreur lors de la sauvegarde",
     "config.saved": "Configuration sauvegard\u00e9e",
+    "config.saved_with_warnings": "Configuration sauvegard\u00e9e (avec avertissements)",
+    "config.warning.source_not_found": "Attention : le dossier source n'existe pas ({path})",
+    "config.warning.dest_not_found": "Attention : la destination n'existe pas ({path})",
 
     // Scan / files
     "scan.error": "Erreur lors du scan",
@@ -369,6 +372,9 @@ const TRANSLATIONS = {
     "config.error.dest_required": "At least one destination is required",
     "config.error.save": "Error saving configuration",
     "config.saved": "Configuration saved",
+    "config.saved_with_warnings": "Configuration saved (with warnings)",
+    "config.warning.source_not_found": "Warning: source directory does not exist ({path})",
+    "config.warning.dest_not_found": "Warning: destination does not exist ({path})",
 
     // Scan / files
     "scan.error": "Error during scan",
