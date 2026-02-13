@@ -98,6 +98,18 @@ let triageIndex = 0;
 let triageOpen = false;
 let triageSearchTimeout = null;
 
+// ─── DOM REFS (trash view) ───────────────────────────
+const trashTbody = document.getElementById("trash-tbody");
+const trashSelectAll = document.getElementById("trash-select-all");
+const trashBadge = document.getElementById("trash-badge");
+const trashInfo = document.getElementById("trash-info");
+const btnPurgeTrash = document.getElementById("btn-purge-trash");
+const btnRefreshTrash = document.getElementById("btn-refresh-trash");
+const btnRestoreSelected = document.getElementById("btn-restore-selected");
+const btnDeleteSelected = document.getElementById("btn-delete-selected");
+
+let trashData = [];
+
 // ─── DOM REFS (triage) ──────────────────────────────
 const triageOverlay = document.getElementById("triage-overlay");
 const triageCounter = document.getElementById("triage-counter");
@@ -137,6 +149,7 @@ configLang.addEventListener("change", () => {
     renderHistory();
     renderConvertTable();
     updateConvertButton();
+    if (trashData.length > 0) renderTrashTable();
 });
 
 // ─── NAVIGATION ────────────────────────────────────────
@@ -153,6 +166,7 @@ navTabs.forEach((tab) => {
         if (view === "dashboard") loadDashboard();
         if (view === "config") loadConfigUI();
         if (view === "history") loadHistory();
+        if (view === "trash") loadTrash();
     });
 });
 
@@ -1327,6 +1341,7 @@ function renderHistory() {
         undo_organize: t("history.action.undo_organize"),
         undo_fix_naming: t("history.action.undo_fix_naming"),
         undo_convert: t("history.action.undo_convert"),
+        purge_trash: t("history.action.purge_trash"),
     };
 
     historyTbody.innerHTML = historyData.map((h, i) => {
@@ -1343,6 +1358,8 @@ function renderHistory() {
             detail = `${escHtml(h.source || "")} &rarr; ${escHtml(h.destination || "")}`;
         } else if (h.action === "upload") {
             detail = escHtml(h.filename || "");
+        } else if (h.action === "purge_trash") {
+            detail = `${h.deleted_count || 0} fichier(s)`;
         } else if (h.action.startsWith("undo_")) {
             detail = escHtml(h.source || h.deleted || h.current || "");
         }
@@ -2414,6 +2431,196 @@ async function uploadFiles(files) {
     }
 }
 
+// ─── TRASH MANAGEMENT ──────────────────────────────────
+
+async function loadTrash() {
+    try {
+        const res = await fetch("/api/trash");
+        if (!res.ok) throw new Error(res.status);
+        const data = await res.json();
+        trashData = data.files;
+        updateTrashBadge(data.count);
+        trashInfo.textContent = data.count > 0
+            ? t("trash.info", { count: data.count, size: data.total_size_human })
+            : "";
+        btnPurgeTrash.disabled = data.count === 0;
+        renderTrashTable();
+    } catch {
+        showToast(t("trash.error.load"), "error");
+    }
+}
+
+function updateTrashBadge(count) {
+    if (count > 0) {
+        trashBadge.textContent = count > 99 ? "99+" : count;
+        trashBadge.style.display = "inline-flex";
+    } else {
+        trashBadge.style.display = "none";
+    }
+}
+
+function renderTrashTable() {
+    if (trashData.length === 0) {
+        trashTbody.innerHTML = `<tr class="empty-row"><td colspan="5">${t("trash.empty")}</td></tr>`;
+        btnRestoreSelected.disabled = true;
+        btnDeleteSelected.disabled = true;
+        return;
+    }
+
+    trashTbody.innerHTML = trashData.map((f, i) => {
+        const ts = f.deleted_at.replace("T", " ");
+        return `<tr class="trash-row">
+            <td class="col-check"><input type="checkbox" class="trash-check" data-index="${i}"></td>
+            <td class="col-trash-name"><span class="file-name">${escHtml(f.name)}</span></td>
+            <td>${f.size_human}</td>
+            <td class="col-trash-date">${escHtml(ts)}</td>
+            <td class="col-trash-actions">
+                <button class="btn-trash-restore" data-index="${i}" type="button">${t("trash.btn.restore")}</button>
+                <button class="btn-trash-delete" data-index="${i}" type="button">&times;</button>
+            </td>
+        </tr>`;
+    }).join("");
+
+    trashSelectAll.checked = false;
+    updateTrashSelection();
+}
+
+function updateTrashSelection() {
+    const checked = trashTbody.querySelectorAll(".trash-check:checked");
+    btnRestoreSelected.disabled = checked.length === 0;
+    btnDeleteSelected.disabled = checked.length === 0;
+    if (checked.length > 0) {
+        btnRestoreSelected.textContent = t("trash.btn.restore_n", { count: checked.length });
+        btnDeleteSelected.textContent = t("trash.btn.delete_n", { count: checked.length });
+    } else {
+        btnRestoreSelected.textContent = t("trash.btn.restore_selected");
+        btnDeleteSelected.textContent = t("trash.btn.delete_selected");
+    }
+}
+
+trashSelectAll.addEventListener("change", () => {
+    trashTbody.querySelectorAll(".trash-check").forEach((c) => (c.checked = trashSelectAll.checked));
+    updateTrashSelection();
+});
+
+trashTbody.addEventListener("change", updateTrashSelection);
+
+trashTbody.addEventListener("click", async (e) => {
+    const restoreBtn = e.target.closest(".btn-trash-restore");
+    if (restoreBtn) {
+        const idx = parseInt(restoreBtn.dataset.index);
+        const file = trashData[idx];
+        restoreBtn.disabled = true;
+        try {
+            const res = await fetch("/api/trash/restore", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ filenames: [file.name] }),
+            });
+            const data = await res.json();
+            if (data.results[0]?.success) {
+                showToast(t("trash.restored", { name: file.name }), "success");
+                await loadTrash();
+            } else {
+                showToast(data.results[0]?.error || t("trash.error.restore"), "error");
+            }
+        } catch {
+            showToast(t("trash.error.restore"), "error");
+        }
+        return;
+    }
+
+    const deleteBtn = e.target.closest(".btn-trash-delete");
+    if (deleteBtn) {
+        const idx = parseInt(deleteBtn.dataset.index);
+        const file = trashData[idx];
+        if (!confirm(t("trash.confirm_delete_one", { name: file.name }))) return;
+        deleteBtn.disabled = true;
+        try {
+            const res = await fetch("/api/trash/purge", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ filenames: [file.name] }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(t("trash.deleted_permanent", { name: file.name }), "success");
+                await loadTrash();
+            }
+        } catch {
+            showToast(t("trash.error.delete"), "error");
+        }
+    }
+});
+
+btnRestoreSelected.addEventListener("click", async () => {
+    const checked = Array.from(trashTbody.querySelectorAll(".trash-check:checked"));
+    const filenames = checked.map((c) => trashData[parseInt(c.dataset.index)].name);
+    if (filenames.length === 0) return;
+
+    btnRestoreSelected.disabled = true;
+    try {
+        const res = await fetch("/api/trash/restore", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filenames }),
+        });
+        const data = await res.json();
+        const successes = data.results.filter((r) => r.success);
+        if (successes.length > 0) {
+            showToast(t("trash.restored_n", { count: successes.length }), "success");
+        }
+        data.results.filter((r) => r.error).forEach((r) => showToast(`${r.name}: ${r.error}`, "error"));
+        await loadTrash();
+    } catch {
+        showToast(t("trash.error.restore"), "error");
+    }
+});
+
+btnDeleteSelected.addEventListener("click", async () => {
+    const checked = Array.from(trashTbody.querySelectorAll(".trash-check:checked"));
+    const filenames = checked.map((c) => trashData[parseInt(c.dataset.index)].name);
+    if (filenames.length === 0) return;
+    if (!confirm(t("trash.confirm_delete_n", { count: filenames.length }))) return;
+
+    btnDeleteSelected.disabled = true;
+    try {
+        const res = await fetch("/api/trash/purge", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filenames }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(t("trash.purged_n", { count: data.deleted }), "success");
+        }
+        await loadTrash();
+    } catch {
+        showToast(t("trash.error.delete"), "error");
+    }
+});
+
+btnPurgeTrash.addEventListener("click", async () => {
+    if (!confirm(t("trash.confirm_purge_all"))) return;
+    btnPurgeTrash.disabled = true;
+    try {
+        const res = await fetch("/api/trash/purge", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filenames: [] }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(t("trash.purged_all", { count: data.deleted }), "success");
+        }
+        await loadTrash();
+    } catch {
+        showToast(t("trash.error.delete"), "error");
+    }
+});
+
+btnRefreshTrash.addEventListener("click", loadTrash);
+
 // ─── INIT ──────────────────────────────────────────────
 async function init() {
     await loadConfig();
@@ -2430,6 +2637,7 @@ async function init() {
         document.getElementById("view-files").style.display = "";
     }
     scanFiles();
+    fetch("/api/trash").then((r) => r.json()).then((d) => updateTrashBadge(d.count)).catch(() => {});
 }
 
 init();

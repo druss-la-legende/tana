@@ -2791,3 +2791,223 @@ td.col-search-ext {
         justify-content: center;
     }
 }
+
+/* ─── TRASH VIEW ──────────────────────────────────── */
+
+.trash-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.trash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elevated);
+}
+
+.trash-header h2 {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-high);
+    margin: 0;
+}
+
+.trash-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.trash-info {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.trash-table-wrap {
+    max-height: calc(100vh - 280px);
+    min-height: 200px;
+    overflow-y: auto;
+}
+
+.trash-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.trash-table thead th {
+    background: var(--bg-elevated);
+    padding: 0.6rem 1.25rem;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-bright);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.trash-row {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+}
+
+.trash-row:hover {
+    background: var(--bg-elevated);
+}
+
+.trash-row td {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.85rem;
+    color: var(--text);
+}
+
+.col-trash-name {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    word-break: break-all;
+}
+
+.col-trash-date {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.col-trash-actions {
+    display: flex;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
+.btn-trash-restore {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: var(--bg);
+    color: var(--success);
+    border: 1px solid rgba(52, 211, 153, 0.25);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-trash-restore:hover {
+    background: var(--success);
+    color: #fff;
+    border-color: var(--success);
+}
+
+.btn-trash-delete {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: var(--bg);
+    color: var(--error);
+    border: 1px solid rgba(248, 113, 113, 0.25);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1;
+}
+
+.btn-trash-delete:hover {
+    background: var(--error);
+    color: #fff;
+    border-color: var(--error);
+}
+
+.trash-actions {
+    padding: 1rem 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.trash-actions button {
+    padding: 0.5rem 1.2rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.trash-actions button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+#btn-restore-selected {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid rgba(52, 211, 153, 0.25);
+}
+
+#btn-restore-selected:not(:disabled):hover {
+    background: var(--success);
+    color: #fff;
+}
+
+.btn-danger {
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid rgba(248, 113, 113, 0.25);
+}
+
+.btn-danger:not(:disabled):hover {
+    background: var(--error);
+    color: #fff;
+}
+
+.btn-purge {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid rgba(248, 113, 113, 0.25);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-purge:not(:disabled):hover {
+    background: var(--error);
+    color: #fff;
+}
+
+.btn-purge:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.trash-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: var(--error);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 9px;
+    line-height: 1;
+}
+
+/* History badge for purge_trash */
+.history-action-purge_trash {
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--error);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+}

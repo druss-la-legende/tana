@@ -37,6 +37,11 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <span data-i18n="tab.history">Historique</span>
             </button>
+            <button class="nav-tab" data-view="trash" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span data-i18n="tab.trash">Corbeille</span>
+                <span class="trash-badge" id="trash-badge" style="display:none">0</span>
+            </button>
             <button class="nav-tab" data-view="config" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 <span data-i18n="tab.config">Configuration</span>
@@ -293,6 +298,7 @@
                             <option value="fix_naming" data-i18n="history.filter.fix_naming">Correction nommage</option>
                             <option value="convert" data-i18n="history.filter.convert">Convertir CBR</option>
                             <option value="upload" data-i18n="history.filter.upload">Importer</option>
+                            <option value="purge_trash" data-i18n="history.filter.purge_trash">Purge corbeille</option>
                         </select>
                         <button id="btn-refresh-history" type="button" class="btn-config-add" data-i18n="history.btn.refresh">Rafra&#238;chir</button>
                     </div>
@@ -415,6 +421,42 @@
             </div>
         </section>
 
+        <!-- TRASH VIEW -->
+        <section id="view-trash" style="display:none">
+            <div class="trash-panel">
+                <div class="trash-header">
+                    <h2 data-i18n="trash.title">Corbeille</h2>
+                    <div class="trash-controls">
+                        <span class="trash-info" id="trash-info"></span>
+                        <button id="btn-purge-trash" type="button" class="btn-purge" disabled data-i18n="trash.btn.purge">Vider la corbeille</button>
+                        <button id="btn-refresh-trash" type="button" class="btn-config-add" data-i18n="trash.btn.refresh">Rafra&#238;chir</button>
+                    </div>
+                </div>
+
+                <div class="trash-table-wrap">
+                    <table class="trash-table">
+                        <thead>
+                            <tr>
+                                <th class="col-check"><input type="checkbox" id="trash-select-all"></th>
+                                <th data-i18n="trash.col.file">Fichier</th>
+                                <th data-i18n="trash.col.size">Taille</th>
+                                <th data-i18n="trash.col.deleted_at">Supprim&#233; le</th>
+                                <th data-i18n="trash.col.actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trash-tbody">
+                            <tr class="empty-row"><td colspan="5" data-i18n="trash.empty">La corbeille est vide</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="trash-actions">
+                    <button id="btn-restore-selected" type="button" disabled data-i18n="trash.btn.restore_selected">Restaurer la s&#233;lection</button>
+                    <button id="btn-delete-selected" type="button" class="btn-danger" disabled data-i18n="trash.btn.delete_selected">Supprimer d&#233;finitivement</button>
+                </div>
+            </div>
+        </section>
+
         <!-- TRIAGE OVERLAY -->
         <div id="triage-overlay" class="triage-overlay" style="display:none">
             <div class="triage-backdrop"></div>
@@ -497,7 +539,7 @@
         <div class="toast-container" id="toast-container"></div>
     </main>
 
-    <script src="{{ url_for('static', filename='i18n.js') }}?v=15"></script>
-    <script src="{{ url_for('static', filename='app.js') }}?v=15"></script>
+    <script src="{{ url_for('static', filename='i18n.js') }}?v=16"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=16"></script>
 </body>
 </html>

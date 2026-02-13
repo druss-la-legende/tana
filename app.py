@@ -1025,6 +1025,138 @@ def api_undelete():
     return jsonify({"success": True, "filename": filename})
 
 
+@app.route("/api/trash")
+def api_trash():
+    """List all files in the trash directory."""
+    cfg = load_config()
+    source_dir = cfg["source_dir"]
+    trash_dir = Path(source_dir) / ".trash"
+
+    if not trash_dir.is_dir():
+        return jsonify({"files": [], "count": 0, "total_size": 0, "total_size_human": "0 o"})
+
+    files = []
+    total_size = 0
+    for f in sorted(trash_dir.rglob("*")):
+        if not f.is_file():
+            continue
+        try:
+            rel = f.relative_to(trash_dir)
+        except ValueError:
+            continue
+        stat = f.stat()
+        size = stat.st_size
+        total_size += size
+        deleted_at = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(stat.st_mtime))
+        files.append({
+            "name": str(rel),
+            "size": size,
+            "size_human": format_size(size),
+            "deleted_at": deleted_at,
+        })
+
+    files.sort(key=lambda x: x["deleted_at"], reverse=True)
+
+    return jsonify({
+        "files": files,
+        "count": len(files),
+        "total_size": total_size,
+        "total_size_human": format_size(total_size),
+    })
+
+
+@app.route("/api/trash/restore", methods=["POST"])
+def api_trash_restore():
+    """Restore one or more files from trash."""
+    data = request.get_json()
+    cfg = load_config()
+    source_dir = cfg["source_dir"]
+    filenames = data.get("filenames", [])
+
+    if not filenames:
+        return jsonify({"error": "Aucun fichier sélectionné"}), 400
+
+    results = []
+    for filename in filenames:
+        if not filename or not is_safe_filename(filename, source_dir):
+            results.append({"name": filename, "error": "Chemin non autorisé"})
+            continue
+
+        trash_path = Path(source_dir) / ".trash" / filename
+        restore_path = Path(source_dir) / filename
+
+        if not trash_path.is_file():
+            results.append({"name": filename, "error": "Fichier introuvable"})
+            continue
+
+        if restore_path.exists():
+            results.append({"name": filename, "error": "Le fichier existe déjà"})
+            continue
+
+        restore_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.move(str(trash_path), str(restore_path))
+            results.append({"name": filename, "success": True})
+            log_action("undelete", {"filename": filename, "source_dir": source_dir})
+        except Exception as e:
+            results.append({"name": filename, "error": str(e)})
+
+    return jsonify({"results": results})
+
+
+@app.route("/api/trash/purge", methods=["POST"])
+def api_trash_purge():
+    """Permanently delete files from trash."""
+    data = request.get_json()
+    cfg = load_config()
+    source_dir = cfg["source_dir"]
+    filenames = data.get("filenames", [])
+
+    trash_dir = Path(source_dir) / ".trash"
+    if not trash_dir.is_dir():
+        return jsonify({"success": True, "deleted": 0})
+
+    deleted = 0
+    errors = []
+
+    if not filenames:
+        # Purge all
+        for f in trash_dir.rglob("*"):
+            if f.is_file():
+                try:
+                    f.unlink()
+                    deleted += 1
+                except Exception as e:
+                    errors.append(str(e))
+        # Clean up empty dirs
+        for d in sorted(trash_dir.rglob("*"), reverse=True):
+            if d.is_dir():
+                try:
+                    d.rmdir()
+                except OSError:
+                    pass
+    else:
+        for filename in filenames:
+            if not filename or not is_safe_filename(filename, source_dir):
+                errors.append(f"{filename}: chemin non autorisé")
+                continue
+            trash_path = trash_dir / filename
+            if not trash_path.is_file():
+                errors.append(f"{filename}: introuvable")
+                continue
+            try:
+                trash_path.unlink()
+                deleted += 1
+            except Exception as e:
+                errors.append(f"{filename}: {e}")
+
+    log_action("purge_trash", {"deleted_count": deleted, "source_dir": source_dir})
+    result = {"success": True, "deleted": deleted}
+    if errors:
+        result["errors"] = errors
+    return jsonify(result)
+
+
 @app.route("/api/upload", methods=["POST"])
 def api_upload():
     """Upload files to the source directory via drag & drop."""
