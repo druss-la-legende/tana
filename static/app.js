@@ -45,6 +45,7 @@ const btnAddRule = document.getElementById("btn-add-rule");
 const configLang = document.getElementById("config-lang");
 const configAuditCase = document.getElementById("config-audit-case");
 const configDashboardEnabled = document.getElementById("config-dashboard-enabled");
+const configThumbnailsEnabled = document.getElementById("config-thumbnails-enabled");
 const configExtList = document.getElementById("config-ext-list");
 const configNewExt = document.getElementById("config-new-ext");
 const btnAddExt = document.getElementById("btn-add-ext");
@@ -207,6 +208,7 @@ function loadConfigUI() {
     configLang.value = appConfig.lang || "fr";
     configAuditCase.value = appConfig.audit_case || "first";
     configDashboardEnabled.checked = !!appConfig.dashboard_enabled;
+    configThumbnailsEnabled.checked = appConfig.thumbnails_enabled !== false;
     if (!appConfig.template_rules) appConfig.template_rules = [];
     if (!appConfig.extensions) appConfig.extensions = [".cbr", ".cbz", ".pdf"];
     renderExtList();
@@ -374,6 +376,7 @@ btnSaveConfig.addEventListener("click", async () => {
                 template_rules: appConfig.template_rules || [],
                 audit_case: configAuditCase.value,
                 dashboard_enabled: configDashboardEnabled.checked,
+                thumbnails_enabled: configThumbnailsEnabled.checked,
                 lang: configLang.value,
             }),
         });
@@ -472,8 +475,11 @@ function buildFileRow(f, i, extraClass = "") {
 
     const dupClass = f.duplicate ? " duplicate-row" : "";
     const dupBadge = f.duplicate ? `<span class="duplicate-badge" title="${t("files.duplicate_title")}">${t("files.duplicate_badge")}</span>` : "";
+    const thumbsOn = appConfig.thumbnails_enabled !== false;
+    const thumbUrl = thumbsOn ? `/api/thumbnail/${encodeURIComponent(f.name)}` : "";
     return `<tr data-index="${i}" class="${confClass}${dupClass}${extraClass ? " " + extraClass : ""}">
         <td class="col-check"><input type="checkbox" class="file-check" data-index="${i}"></td>
+        <td class="col-thumb">${thumbsOn ? `<img class="file-thumb" data-src="${thumbUrl}" alt="" loading="lazy">` : ""}</td>
         <td class="col-name"><span class="file-name">${escHtml(baseName)}<span class="file-ext">.${escHtml(ext)}</span></span>${dupBadge}</td>
         <td class="col-series"><span class="series-guess">${escHtml(guess)}</span> ${confBadge}</td>
         <td class="col-search-ext">${guess ? `<a class="btn-ext-search" href="https://www.nautiljon.com/search.php?q=${encodeURIComponent(guess)}" target="_blank" rel="noopener" title="Nautiljon"><span class="ext-label">N</span></a><a class="btn-ext-search" href="https://www.manga-news.com/index.php/recherche/?q=${encodeURIComponent(guess)}" target="_blank" rel="noopener" title="Manga-News"><span class="ext-label">M</span></a>` : ""}</td>
@@ -527,10 +533,12 @@ function getDisplayFiles() {
 function renderFiles() {
     const tableWrap = document.querySelector(".file-table-wrap");
     const scrollTop = tableWrap ? tableWrap.scrollTop : 0;
+    const fileTable = document.getElementById("file-table");
+    if (fileTable) fileTable.classList.toggle("no-thumbs", appConfig.thumbnails_enabled === false);
 
     if (filesData.length === 0) {
         const exts = (appConfig.extensions || [".cbr", ".cbz", ".pdf"]).map((e) => e.replace(".", "").toUpperCase()).join(", ");
-        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="9">
+        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="10">
             <div class="empty-dropzone" id="empty-dropzone">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 <span class="empty-dropzone-title">${t("upload.empty_title")}</span>
@@ -557,7 +565,7 @@ function renderFiles() {
     }
 
     if (displayItems.length === 0) {
-        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="9">${t("files.empty_filter")}</td></tr>`;
+        fileTbody.innerHTML = `<tr class="empty-row"><td colspan="10">${t("files.empty_filter")}</td></tr>`;
         selectAll.checked = false;
         updatePreview();
         btnOrganizeMatched.style.display = "none";
@@ -602,12 +610,12 @@ function renderFiles() {
         for (const [key, group] of sortedGroups) {
             const indices = group.files.map((f) => f.index);
             if (groupIdx > 0) {
-                html += `<tr class="group-spacer"><td colspan="9"></td></tr>`;
+                html += `<tr class="group-spacer"><td colspan="10"></td></tr>`;
             }
             if (group.files.length > 1) {
                 html += `<tr class="group-header" data-group-indices="${indices.join(",")}">
                     <td class="col-check"><input type="checkbox" class="group-check" data-group-indices="${indices.join(",")}"></td>
-                    <td colspan="8"><span class="group-label">${escHtml(group.label)}</span><span class="group-count">${group.files.length}</span></td>
+                    <td colspan="9"><span class="group-label">${escHtml(group.label)}</span><span class="group-count">${group.files.length}</span></td>
                 </tr>`;
             }
             for (let gi = 0; gi < group.files.length; gi++) {
@@ -639,6 +647,24 @@ function renderFiles() {
     btnTriage.style.display = filesData.length > 0 ? "inline-flex" : "none";
 
     if (tableWrap) tableWrap.scrollTop = scrollTop;
+
+    // Lazy-load thumbnails as they scroll into view
+    requestAnimationFrame(() => {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    if (img.dataset.src && !img.src) {
+                        img.src = img.dataset.src;
+                        img.onload = () => img.classList.add("loaded");
+                        img.onerror = () => img.classList.add("error");
+                    }
+                    observer.unobserve(img);
+                }
+            });
+        }, { root: tableWrap, rootMargin: "100px" });
+        document.querySelectorAll(".file-thumb[data-src]").forEach((img) => observer.observe(img));
+    });
 }
 
 // Series search autocomplete
@@ -2029,6 +2055,17 @@ function renderTriageFile() {
     triageFilename.textContent = f.name;
     triageFileSize.textContent = f.size_human;
     triageFileExt.textContent = f.extension;
+
+    // Thumbnail
+    const thumbContainer = document.getElementById("triage-thumb-container");
+    if (thumbContainer) {
+        if (appConfig.thumbnails_enabled !== false) {
+            const thumbUrl = `/api/thumbnail/${encodeURIComponent(f.name)}`;
+            thumbContainer.innerHTML = `<img class="triage-thumb" src="${thumbUrl}" alt="">`;
+        } else {
+            thumbContainer.innerHTML = "";
+        }
+    }
 
     // Detection
     triageSeriesGuess.textContent = f.series_guess || t("files.no_series");

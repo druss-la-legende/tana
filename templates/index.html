@@ -123,6 +123,7 @@
                         <thead>
                             <tr>
                                 <th class="col-check"></th>
+                                <th class="col-thumb"></th>
                                 <th class="col-name sortable" data-sort="name" data-i18n="files.col.file">Fichier</th>
                                 <th class="col-series sortable" data-sort="series" data-i18n="files.col.series">S&#233;rie d&#233;tect&#233;e</th>
                                 <th class="col-search-ext"></th>
@@ -135,7 +136,7 @@
                         </thead>
                         <tbody id="file-tbody">
                             <tr class="empty-row">
-                                <td colspan="9" data-i18n="files.loading">Chargement...</td>
+                                <td colspan="10" data-i18n="files.loading">Chargement...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -202,6 +203,16 @@
                                 <label class="config-checkbox-label">
                                     <input type="checkbox" id="config-dashboard-enabled">
                                     <span data-i18n="config.dashboard_enabled_hint">Afficher le dashboard avec les statistiques de la collection</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="config-section">
+                            <label class="config-label" data-i18n="config.thumbnails_enabled">Miniatures</label>
+                            <div class="config-checkbox-row">
+                                <label class="config-checkbox-label">
+                                    <input type="checkbox" id="config-thumbnails-enabled" checked>
+                                    <span data-i18n="config.thumbnails_enabled_hint">Afficher les couvertures dans la liste des fichiers</span>
                                 </label>
                             </div>
                         </div>
@@ -485,10 +496,15 @@
                 </div>
                 <div class="triage-card" id="triage-card">
                     <div class="triage-file-info">
-                        <div class="triage-filename" id="triage-filename"></div>
-                        <div class="triage-file-meta">
-                            <span class="triage-file-size" id="triage-file-size"></span>
-                            <span class="triage-file-ext" id="triage-file-ext"></span>
+                        <div class="triage-file-top">
+                            <div id="triage-thumb-container" class="triage-thumb-container"></div>
+                            <div class="triage-file-text">
+                                <div class="triage-filename" id="triage-filename"></div>
+                                <div class="triage-file-meta">
+                                    <span class="triage-file-size" id="triage-file-size"></span>
+                                    <span class="triage-file-ext" id="triage-file-ext"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="triage-detection">
@@ -556,7 +572,7 @@
         <div class="toast-container" id="toast-container"></div>
     </main>
 
-    <script src="{{ url_for('static', filename='i18n.js') }}?v=16"></script>
-    <script src="{{ url_for('static', filename='app.js') }}?v=16"></script>
+    <script src="{{ url_for('static', filename='i18n.js') }}?v=17"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v=17"></script>
 </body>
 </html>

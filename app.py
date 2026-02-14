@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import re
@@ -6,11 +7,13 @@ import tempfile
 import time
 import zipfile
 from collections import Counter
+from io import BytesIO
 from pathlib import Path
 
 import fitz  # PyMuPDF
 import rarfile
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_file
+from PIL import Image
 from unidecode import unidecode
 
 app = Flask(__name__)
@@ -32,6 +35,7 @@ DEFAULT_CONFIG = {
     "template_rules": [],  # [{filter: "manga", template: "...", template_no_tome: "..."}]
     "audit_case": "first",  # "ignore", "first", "title"
     "dashboard_enabled": False,
+    "thumbnails_enabled": True,
     "lang": "fr",
 }
 
@@ -1253,6 +1257,7 @@ def api_save_config():
         audit_case = "first"
 
     dashboard_enabled = bool(data.get("dashboard_enabled", False))
+    thumbnails_enabled = bool(data.get("thumbnails_enabled", True))
 
     # Normalize extensions: lowercase, ensure leading dot
     raw_exts = data.get("extensions", list(DEFAULT_EXTENSIONS))
@@ -1285,6 +1290,7 @@ def api_save_config():
         "template_rules": clean_rules,
         "audit_case": audit_case,
         "dashboard_enabled": dashboard_enabled,
+        "thumbnails_enabled": thumbnails_enabled,
         "lang": lang,
     }
     save_config(cfg)
@@ -1536,6 +1542,129 @@ def api_convert():
             results.append({"source": cbr_path.name, "error": str(e)})
 
     return jsonify({"results": results})
+
+
+# ─── THUMBNAIL ──────────────────────────────────────────
+
+THUMB_MAX_SIZE = (200, 280)
+THUMB_QUALITY = 85
+_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+
+
+def _natural_sort_key(s: str) -> list:
+    """Sort key for natural alphanumeric ordering (page_01 < page_02 < page_10)."""
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r"(\d+)", s)]
+
+
+def _first_image_from_cbz(path: Path) -> bytes | None:
+    try:
+        with zipfile.ZipFile(str(path), "r") as zf:
+            images = [n for n in zf.namelist()
+                      if Path(n).suffix.lower() in _IMAGE_EXTS
+                      and not n.startswith("__MACOSX") and not Path(n).name.startswith(".")]
+            if not images:
+                return None
+            images.sort(key=_natural_sort_key)
+            return zf.read(images[0])
+    except Exception:
+        return None
+
+
+def _first_image_from_cbr(path: Path) -> bytes | None:
+    try:
+        with rarfile.RarFile(str(path)) as rf:
+            images = [n for n in rf.namelist()
+                      if Path(n).suffix.lower() in _IMAGE_EXTS
+                      and not n.startswith("__MACOSX") and not Path(n).name.startswith(".")]
+            if not images:
+                return None
+            images.sort(key=_natural_sort_key)
+            return rf.read(images[0])
+    except Exception:
+        return None
+
+
+def _first_image_from_pdf(path: Path) -> bytes | None:
+    try:
+        doc = fitz.open(str(path))
+        if len(doc) == 0:
+            doc.close()
+            return None
+        pix = doc[0].get_pixmap(matrix=fitz.Matrix(150 / 72, 150 / 72))
+        data = pix.tobytes("jpeg")
+        doc.close()
+        return data
+    except Exception:
+        return None
+
+
+def _make_thumbnail(raw: bytes) -> bytes | None:
+    try:
+        img = Image.open(BytesIO(raw))
+        if img.mode == "RGBA":
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            bg.paste(img, mask=img.split()[3])
+            img = bg
+        elif img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        img.thumbnail(THUMB_MAX_SIZE, Image.Resampling.LANCZOS)
+        out = BytesIO()
+        img.save(out, format="JPEG", quality=THUMB_QUALITY, optimize=True)
+        return out.getvalue()
+    except Exception:
+        return None
+
+
+@app.route("/api/thumbnail/<path:filename>")
+def api_thumbnail(filename: str):
+    """Serve a cover thumbnail for a file in the source directory."""
+    cfg = load_config()
+    source_dir = cfg["source_dir"]
+
+    if not is_safe_filename(filename, source_dir):
+        return "", 403
+
+    file_path = Path(source_dir) / filename
+    if not file_path.is_file():
+        return "", 404
+
+    # Cache directory
+    cache_dir = Path(source_dir) / ".thumbnails"
+    cache_dir.mkdir(exist_ok=True)
+    file_hash = hashlib.md5(filename.encode("utf-8")).hexdigest()
+    cache_path = cache_dir / f"{file_hash}.jpg"
+
+    # Serve from cache if still valid
+    if cache_path.exists():
+        try:
+            if cache_path.stat().st_mtime >= file_path.stat().st_mtime:
+                return send_file(str(cache_path), mimetype="image/jpeg", max_age=86400)
+        except OSError:
+            pass
+
+    # Extract first image
+    ext = file_path.suffix.lower()
+    extractors = {".cbz": _first_image_from_cbz, ".zip": _first_image_from_cbz,
+                  ".cbr": _first_image_from_cbr, ".pdf": _first_image_from_pdf}
+    extractor = extractors.get(ext)
+    if not extractor:
+        return "", 404
+
+    raw = extractor(file_path)
+    if not raw:
+        return "", 404
+
+    thumb = _make_thumbnail(raw)
+    if not thumb:
+        return "", 404
+
+    # Write cache
+    try:
+        cache_path.write_bytes(thumb)
+    except Exception:
+        pass
+
+    return send_file(BytesIO(thumb), mimetype="image/jpeg", max_age=86400)
 
 
 if __name__ == "__main__":
