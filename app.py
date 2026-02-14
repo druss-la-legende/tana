@@ -27,7 +27,7 @@ def internal_error(e):
 CONFIG_PATH = Path(__file__).parent / "config.json"
 
 DEFAULT_CONFIG = {
-    "source_dir": "/path/to/incoming",
+    "sources": [],
     "destinations": [],
     "extensions": [".cbr", ".cbz", ".pdf"],
     "template": "{series} - T{tome:02d}{ext}",
@@ -71,10 +71,18 @@ TOME_PATTERNS = [
 
 
 def load_config() -> dict:
-    """Load configuration from config.json, creating it with defaults if missing."""
+    """Load configuration from config.json, creating it with defaults if missing.
+
+    Migrates legacy ``source_dir`` (string) to ``sources`` (list) automatically.
+    """
     if CONFIG_PATH.is_file():
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+            cfg = json.load(f)
+        # Migrate legacy source_dir → sources
+        if "source_dir" in cfg and "sources" not in cfg:
+            cfg["sources"] = [cfg.pop("source_dir")]
+            save_config(cfg)
+        return cfg
     save_config(DEFAULT_CONFIG)
     return dict(DEFAULT_CONFIG)
 
@@ -84,6 +92,18 @@ def save_config(cfg: dict) -> None:
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2, ensure_ascii=False)
         f.write("\n")
+
+
+def get_sources(cfg: dict | None = None) -> list[str]:
+    """Return the list of source directories from config."""
+    if cfg is None:
+        cfg = load_config()
+    sources = cfg.get("sources", [])
+    if not sources:
+        # Legacy fallback
+        sd = cfg.get("source_dir", "")
+        return [sd] if sd else []
+    return sources
 
 
 def normalize(name: str) -> str:
@@ -345,53 +365,57 @@ def find_best_match(guessed_name: str, existing: dict[str, list[dict]], threshol
     return None, 0.0
 
 
-def list_files(source_dir: str) -> list[dict]:
-    """List comic files in the source directory (recursive, skips .trash/)."""
-    source = Path(source_dir)
-    if not source.is_dir():
-        return []
-
+def list_files(sources: list[str]) -> list[dict]:
+    """List comic files in all source directories (recursive, skips .trash/)."""
     cfg = load_config()
     existing = get_existing_series()
     extensions = get_extensions(cfg)
 
     files = []
-    for f in sorted(source.rglob("*")):
-        # Skip .trash directory and hidden folders
-        try:
-            rel = f.relative_to(source)
-        except ValueError:
+    for source_dir in sources:
+        source = Path(source_dir)
+        if not source.is_dir():
             continue
-        if any(part.startswith(".") for part in rel.parts):
-            continue
-        if f.is_file() and f.suffix.lower() in extensions:
-            rel_name = str(rel) if len(rel.parts) > 1 else f.name
-            guessed = detect_series(f.name)
-            match, match_score = find_best_match(guessed, existing)
-            size = f.stat().st_size
-            tome = detect_tome(f.name)
-            ext = f.suffix.lower()
+        source_label = source.name
 
-            # Proactive duplicate detection for high-confidence matches
-            duplicate = False
-            if match is not None and match_score >= 0.9:
-                tpl, tpl_no_tome = get_template_for_dest(cfg, match["destination"])
-                title = detect_title(f.name)
-                new_name = apply_template(tpl, match["name"], int(tome) if tome is not None else None, ext, tpl_no_tome, title)
-                target_path = Path(match["destination"]) / match["name"] / new_name
-                duplicate = target_path.exists()
+        for f in sorted(source.rglob("*")):
+            # Skip .trash/.thumbnails and hidden folders
+            try:
+                rel = f.relative_to(source)
+            except ValueError:
+                continue
+            if any(part.startswith(".") for part in rel.parts):
+                continue
+            if f.is_file() and f.suffix.lower() in extensions:
+                rel_name = str(rel) if len(rel.parts) > 1 else f.name
+                guessed = detect_series(f.name)
+                match, match_score = find_best_match(guessed, existing)
+                size = f.stat().st_size
+                tome = detect_tome(f.name)
+                ext = f.suffix.lower()
 
-            files.append({
-                "name": rel_name,
-                "size": size,
-                "size_human": format_size(size),
-                "tome": tome,
-                "extension": ext,
-                "series_guess": guessed,
-                "series_match": match,
-                "match_score": round(match_score, 2),
-                "duplicate": duplicate,
-            })
+                # Proactive duplicate detection for high-confidence matches
+                duplicate = False
+                if match is not None and match_score >= 0.9:
+                    tpl, tpl_no_tome = get_template_for_dest(cfg, match["destination"])
+                    title = detect_title(f.name)
+                    new_name = apply_template(tpl, match["name"], int(tome) if tome is not None else None, ext, tpl_no_tome, title)
+                    target_path = Path(match["destination"]) / match["name"] / new_name
+                    duplicate = target_path.exists()
+
+                files.append({
+                    "name": rel_name,
+                    "source_dir": source_dir,
+                    "source_label": source_label,
+                    "size": size,
+                    "size_human": format_size(size),
+                    "tome": tome,
+                    "extension": ext,
+                    "series_guess": guessed,
+                    "series_match": match,
+                    "match_score": round(match_score, 2),
+                    "duplicate": duplicate,
+                })
     return files
 
 
@@ -471,9 +495,9 @@ def index():
 @app.route("/api/files")
 def api_files():
     cfg = load_config()
-    source = request.args.get("source", cfg["source_dir"])
-    files = list_files(source)
-    return jsonify({"files": files, "source": source})
+    sources = get_sources(cfg)
+    files = list_files(sources)
+    return jsonify({"files": files, "sources": sources})
 
 
 @app.route("/api/detect-tome", methods=["POST"])
@@ -740,7 +764,7 @@ def api_undo():
     if action in ("organize", "organize_batch"):
         dest_path = Path(data.get("destination", ""))
         source_name = data.get("source", "")
-        source_dir = cfg["source_dir"]
+        source_dir = data.get("source_dir", "") or get_sources(cfg)[0] if get_sources(cfg) else ""
 
         if not dest_path.is_file():
             return jsonify({"error": "Fichier introuvable dans la destination"}), 400
@@ -841,7 +865,7 @@ def api_organize_matched():
     """Organize all auto-matched files in one batch."""
     data = request.get_json()
     cfg = load_config()
-    source_dir = data.get("source_dir", cfg["source_dir"])
+    source_dir = data.get("source_dir", get_sources(cfg)[0] if get_sources(cfg) else "")
     items = data.get("items", [])  # [{source, series_name, destination, tome}]
 
     if not items:
@@ -909,7 +933,7 @@ def api_organize():
     cfg = load_config()
     series_name = data.get("series_name", "").strip()
     destination = data.get("destination", "").strip()
-    source_dir = data.get("source_dir", cfg["source_dir"])
+    source_dir = data.get("source_dir", get_sources(cfg)[0] if get_sources(cfg) else "")
     files = data.get("files", [])
 
     if not series_name:
@@ -987,7 +1011,7 @@ def api_organize():
 def api_delete():
     data = request.get_json()
     cfg = load_config()
-    source_dir = data.get("source_dir", cfg["source_dir"])
+    source_dir = data.get("source_dir", get_sources(cfg)[0] if get_sources(cfg) else "")
     filename = data.get("filename", "").strip()
 
     if not filename or not is_safe_filename(filename, source_dir):
@@ -1012,7 +1036,7 @@ def api_delete():
 def api_undelete():
     data = request.get_json()
     cfg = load_config()
-    source_dir = data.get("source_dir", cfg["source_dir"])
+    source_dir = data.get("source_dir", get_sources(cfg)[0] if get_sources(cfg) else "")
     filename = data.get("filename", "").strip()
 
     if not filename or not is_safe_filename(filename, source_dir):
@@ -1032,33 +1056,36 @@ def api_undelete():
 
 @app.route("/api/trash")
 def api_trash():
-    """List all files in the trash directory."""
+    """List all files in the trash directories (one per source)."""
     cfg = load_config()
-    source_dir = cfg["source_dir"]
-    trash_dir = Path(source_dir) / ".trash"
-
-    if not trash_dir.is_dir():
-        return jsonify({"files": [], "count": 0, "total_size": 0, "total_size_human": "0 o"})
+    sources = get_sources(cfg)
 
     files = []
     total_size = 0
-    for f in sorted(trash_dir.rglob("*")):
-        if not f.is_file():
+    for source_dir in sources:
+        trash_dir = Path(source_dir) / ".trash"
+        if not trash_dir.is_dir():
             continue
-        try:
-            rel = f.relative_to(trash_dir)
-        except ValueError:
-            continue
-        stat = f.stat()
-        size = stat.st_size
-        total_size += size
-        deleted_at = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(stat.st_mtime))
-        files.append({
-            "name": str(rel),
-            "size": size,
-            "size_human": format_size(size),
-            "deleted_at": deleted_at,
-        })
+        source_label = Path(source_dir).name
+        for f in sorted(trash_dir.rglob("*")):
+            if not f.is_file():
+                continue
+            try:
+                rel = f.relative_to(trash_dir)
+            except ValueError:
+                continue
+            stat = f.stat()
+            size = stat.st_size
+            total_size += size
+            deleted_at = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(stat.st_mtime))
+            files.append({
+                "name": str(rel),
+                "source_dir": source_dir,
+                "source_label": source_label,
+                "size": size,
+                "size_human": format_size(size),
+                "deleted_at": deleted_at,
+            })
 
     files.sort(key=lambda x: x["deleted_at"], reverse=True)
 
@@ -1074,16 +1101,17 @@ def api_trash():
 def api_trash_restore():
     """Restore one or more files from trash."""
     data = request.get_json()
-    cfg = load_config()
-    source_dir = cfg["source_dir"]
-    filenames = data.get("filenames", [])
+    items = data.get("items", [])  # [{name, source_dir}]
 
-    if not filenames:
+    if not items:
         return jsonify({"error": "Aucun fichier sélectionné"}), 400
 
     results = []
-    for filename in filenames:
-        if not filename or not is_safe_filename(filename, source_dir):
+    for item in items:
+        filename = item.get("name", "") if isinstance(item, dict) else item
+        source_dir = item.get("source_dir", "") if isinstance(item, dict) else ""
+
+        if not source_dir or not filename or not is_safe_filename(filename, source_dir):
             results.append({"name": filename, "error": "Chemin non autorisé"})
             continue
 
@@ -1114,38 +1142,38 @@ def api_trash_purge():
     """Permanently delete files from trash."""
     data = request.get_json()
     cfg = load_config()
-    source_dir = cfg["source_dir"]
-    filenames = data.get("filenames", [])
-
-    trash_dir = Path(source_dir) / ".trash"
-    if not trash_dir.is_dir():
-        return jsonify({"success": True, "deleted": 0})
+    items = data.get("items", [])  # [{name, source_dir}] or empty for purge all
 
     deleted = 0
     errors = []
 
-    if not filenames:
-        # Purge all
-        for f in trash_dir.rglob("*"):
-            if f.is_file():
-                try:
-                    f.unlink()
-                    deleted += 1
-                except Exception as e:
-                    errors.append(str(e))
-        # Clean up empty dirs
-        for d in sorted(trash_dir.rglob("*"), reverse=True):
-            if d.is_dir():
-                try:
-                    d.rmdir()
-                except OSError:
-                    pass
+    if not items:
+        # Purge all trash across all sources
+        for source_dir in get_sources(cfg):
+            trash_dir = Path(source_dir) / ".trash"
+            if not trash_dir.is_dir():
+                continue
+            for f in trash_dir.rglob("*"):
+                if f.is_file():
+                    try:
+                        f.unlink()
+                        deleted += 1
+                    except Exception as e:
+                        errors.append(str(e))
+            for d in sorted(trash_dir.rglob("*"), reverse=True):
+                if d.is_dir():
+                    try:
+                        d.rmdir()
+                    except OSError:
+                        pass
     else:
-        for filename in filenames:
-            if not filename or not is_safe_filename(filename, source_dir):
+        for item in items:
+            filename = item.get("name", "") if isinstance(item, dict) else item
+            source_dir = item.get("source_dir", "") if isinstance(item, dict) else ""
+            if not source_dir or not filename or not is_safe_filename(filename, source_dir):
                 errors.append(f"{filename}: chemin non autorisé")
                 continue
-            trash_path = trash_dir / filename
+            trash_path = Path(source_dir) / ".trash" / filename
             if not trash_path.is_file():
                 errors.append(f"{filename}: introuvable")
                 continue
@@ -1155,7 +1183,7 @@ def api_trash_purge():
             except Exception as e:
                 errors.append(f"{filename}: {e}")
 
-    log_action("purge_trash", {"deleted_count": deleted, "source_dir": source_dir})
+    log_action("purge_trash", {"deleted_count": deleted})
     result = {"success": True, "deleted": deleted}
     if errors:
         result["errors"] = errors
@@ -1166,7 +1194,8 @@ def api_trash_purge():
 def api_upload():
     """Upload files to the source directory via drag & drop."""
     cfg = load_config()
-    source_dir = cfg["source_dir"]
+    sources = get_sources(cfg)
+    source_dir = request.form.get("source_dir", "") or (sources[0] if sources else "")
     source = Path(source_dir)
 
     if not source.is_dir():
@@ -1217,11 +1246,15 @@ def api_get_config():
 @app.route("/api/config", methods=["POST"])
 def api_save_config():
     data = request.get_json()
-    source_dir = data.get("source_dir", "").strip()
+    sources = data.get("sources", [])
     destinations = data.get("destinations", [])
 
-    if not source_dir:
-        return jsonify({"error": "Le dossier source est requis"}), 400
+    # Clean up sources: strip whitespace, remove empty entries
+    if not isinstance(sources, list):
+        sources = []
+    sources = [s.strip() for s in sources if isinstance(s, str) and s.strip()]
+    if not sources:
+        return jsonify({"error": "Au moins un dossier source est requis"}), 400
     if not isinstance(destinations, list) or len(destinations) == 0:
         return jsonify({"error": "Au moins une destination est requise"}), 400
 
@@ -1275,14 +1308,15 @@ def api_save_config():
 
     # Path validation warnings (non-blocking)
     warnings = []
-    if not Path(source_dir).is_dir():
-        warnings.append({"field": "source_dir", "message_key": "config.warning.source_not_found", "path": source_dir})
+    for src in sources:
+        if not Path(src).is_dir():
+            warnings.append({"field": "sources", "message_key": "config.warning.source_not_found", "path": src})
     for dest in destinations:
         if not Path(dest).is_dir():
             warnings.append({"field": "destination", "message_key": "config.warning.dest_not_found", "path": dest})
 
     cfg = {
-        "source_dir": source_dir,
+        "sources": sources,
         "destinations": destinations,
         "extensions": extensions,
         "template": template,
@@ -1617,11 +1651,14 @@ def _make_thumbnail(raw: bytes) -> bytes | None:
 
 @app.route("/api/thumbnail/<path:filename>")
 def api_thumbnail(filename: str):
-    """Serve a cover thumbnail for a file in the source directory."""
-    cfg = load_config()
-    source_dir = cfg["source_dir"]
+    """Serve a cover thumbnail for a file in a source directory."""
+    source_dir = request.args.get("source", "")
+    if not source_dir:
+        cfg = load_config()
+        sources = get_sources(cfg)
+        source_dir = sources[0] if sources else ""
 
-    if not is_safe_filename(filename, source_dir):
+    if not source_dir or not is_safe_filename(filename, source_dir):
         return "", 403
 
     file_path = Path(source_dir) / filename

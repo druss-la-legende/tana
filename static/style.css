@@ -818,6 +818,20 @@ tbody tr.match-suggestion.selected {
     background: rgba(251, 191, 36, 0.04);
 }
 
+.source-label {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    vertical-align: middle;
+    font-family: "JetBrains Mono", monospace;
+}
+
 .duplicate-preview-warn {
     color: #fbbf24;
     font-size: 1rem;

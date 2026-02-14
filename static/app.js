@@ -12,7 +12,7 @@ btnTheme.addEventListener("click", () => {
 });
 
 // ─── CONFIG STATE ──────────────────────────────────────
-let appConfig = { source_dir: "", destinations: [], template: "", template_no_tome: "", template_rules: [], lang: "fr" };
+let appConfig = { sources: [], destinations: [], template: "", template_no_tome: "", template_rules: [], lang: "fr" };
 
 // ─── DOM REFS (files view) ─────────────────────────────
 const selectAll = document.getElementById("select-all");
@@ -29,7 +29,9 @@ const filterSelect = document.getElementById("filter-match");
 const toastContainer = document.getElementById("toast-container");
 
 // ─── DOM REFS (config view) ────────────────────────────
-const configSource = document.getElementById("config-source");
+const configSourcesList = document.getElementById("config-sources-list");
+const configNewSource = document.getElementById("config-new-source");
+const btnAddSource = document.getElementById("btn-add-source");
 const configDestList = document.getElementById("config-dest-list");
 const configNewDest = document.getElementById("config-new-dest");
 const btnAddDest = document.getElementById("btn-add-dest");
@@ -202,7 +204,11 @@ function populateDestinations() {
 
 // ─── CONFIG PAGE ───────────────────────────────────────
 function loadConfigUI() {
-    configSource.value = appConfig.source_dir;
+    // Migrate legacy source_dir → sources
+    if (!appConfig.sources && appConfig.source_dir) {
+        appConfig.sources = [appConfig.source_dir];
+    }
+    if (!appConfig.sources) appConfig.sources = [];
     configTemplate.value = appConfig.template || "{series} - T{tome:02d}{ext}";
     configTemplateNoTome.value = appConfig.template_no_tome || "{series}{ext}";
     configLang.value = appConfig.lang || "fr";
@@ -211,11 +217,41 @@ function loadConfigUI() {
     configThumbnailsEnabled.checked = appConfig.thumbnails_enabled !== false;
     if (!appConfig.template_rules) appConfig.template_rules = [];
     if (!appConfig.extensions) appConfig.extensions = [".cbr", ".cbz", ".pdf"];
+    renderSourcesList();
     renderExtList();
     renderDestList();
     renderRulesList();
     updateTemplatePreview();
 }
+
+function renderSourcesList() {
+    configSourcesList.innerHTML = "";
+    appConfig.sources.forEach((src, idx) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="config-dest-path">${escHtml(src)}</span><button class="btn-remove" type="button" data-idx="${idx}" title="${t("config.delete")}">&#x2715;</button>`;
+        configSourcesList.appendChild(li);
+    });
+}
+
+configSourcesList.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-remove");
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx);
+    appConfig.sources.splice(idx, 1);
+    renderSourcesList();
+});
+
+btnAddSource.addEventListener("click", () => {
+    const val = configNewSource.value.trim();
+    if (!val) return;
+    if (appConfig.sources.includes(val)) {
+        showToast(t("config.error.duplicate"), "error");
+        return;
+    }
+    appConfig.sources.push(val);
+    configNewSource.value = "";
+    renderSourcesList();
+});
 
 function renderRulesList() {
     configRulesList.innerHTML = "";
@@ -349,9 +385,12 @@ configNewDest.addEventListener("keydown", (e) => {
     if (e.key === "Enter") btnAddDest.click();
 });
 
+configNewSource.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") btnAddSource.click();
+});
+
 btnSaveConfig.addEventListener("click", async () => {
-    const sourceDir = configSource.value.trim();
-    if (!sourceDir) {
+    if (appConfig.sources.length === 0) {
         showToast(t("config.error.source_required"), "error");
         return;
     }
@@ -368,7 +407,7 @@ btnSaveConfig.addEventListener("click", async () => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                source_dir: sourceDir,
+                sources: appConfig.sources,
                 destinations: appConfig.destinations,
                 extensions: appConfig.extensions || [".cbr", ".cbz", ".pdf"],
                 template: configTemplate.value.trim(),
@@ -406,11 +445,10 @@ btnSaveConfig.addEventListener("click", async () => {
 
 // ─── SCAN FILES ────────────────────────────────────────
 async function scanFiles() {
-    const source = appConfig.source_dir;
-    if (!source) return;
+    if (!appConfig.sources || appConfig.sources.length === 0) return;
 
     try {
-        const res = await fetch(`/api/files?source=${encodeURIComponent(source)}`);
+        const res = await fetch("/api/files");
         if (!res.ok) throw new Error(res.status);
         const data = await res.json();
         filesData = data.files;
@@ -476,11 +514,12 @@ function buildFileRow(f, i, extraClass = "") {
     const dupClass = f.duplicate ? " duplicate-row" : "";
     const dupBadge = f.duplicate ? `<span class="duplicate-badge" title="${t("files.duplicate_title")}">${t("files.duplicate_badge")}</span>` : "";
     const thumbsOn = appConfig.thumbnails_enabled !== false;
-    const thumbUrl = thumbsOn ? `/api/thumbnail/${encodeURIComponent(f.name)}` : "";
+    const thumbUrl = thumbsOn ? `/api/thumbnail/${encodeURIComponent(f.name)}${f.source_dir ? "?source=" + encodeURIComponent(f.source_dir) : ""}` : "";
+    const sourceLabel = (appConfig.sources && appConfig.sources.length > 1 && f.source_label) ? `<span class="source-label">${escHtml(f.source_label)}</span>` : "";
     return `<tr data-index="${i}" class="${confClass}${dupClass}${extraClass ? " " + extraClass : ""}">
         <td class="col-check"><input type="checkbox" class="file-check" data-index="${i}"></td>
         <td class="col-thumb">${thumbsOn ? `<img class="file-thumb" data-src="${thumbUrl}" alt="" loading="lazy">` : ""}</td>
-        <td class="col-name"><span class="file-name">${escHtml(baseName)}<span class="file-ext">.${escHtml(ext)}</span></span>${dupBadge}</td>
+        <td class="col-name"><span class="file-name">${escHtml(baseName)}<span class="file-ext">.${escHtml(ext)}</span></span>${dupBadge}${sourceLabel}</td>
         <td class="col-series"><span class="series-guess">${escHtml(guess)}</span> ${confBadge}</td>
         <td class="col-search-ext">${guess ? `<a class="btn-ext-search" href="https://www.nautiljon.com/search.php?q=${encodeURIComponent(guess)}" target="_blank" rel="noopener" title="Nautiljon"><span class="ext-label">N</span></a><a class="btn-ext-search" href="https://www.manga-news.com/index.php/recherche/?q=${encodeURIComponent(guess)}" target="_blank" rel="noopener" title="Manga-News"><span class="ext-label">M</span></a>` : ""}</td>
         <td class="col-match">
@@ -832,8 +871,6 @@ fileTbody.addEventListener("click", async (e) => {
     const titleInput = fileTbody.querySelector(`.title-input[data-index="${idx}"]`);
     const tome = tomeInput && tomeInput.value !== "" ? parseInt(tomeInput.value) : null;
     const title = titleInput ? titleInput.value.trim() : "";
-    const source = appConfig.source_dir;
-
     const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = "...";
@@ -845,7 +882,7 @@ fileTbody.addEventListener("click", async (e) => {
             body: JSON.stringify({
                 series_name: serName,
                 destination: dest,
-                source_dir: source,
+                source_dir: file.source_dir,
                 force: true,
                 files: [{ source: file.name, tome, title }],
             }),
@@ -891,7 +928,7 @@ fileTbody.addEventListener("click", async (e) => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                source_dir: appConfig.source_dir,
+                source_dir: file.source_dir,
                 filename: file.name,
             }),
         });
@@ -913,7 +950,7 @@ fileTbody.addEventListener("click", async (e) => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    source_dir: appConfig.source_dir,
+                    source_dir: deletedFile.source_dir,
                     filename: deletedFile.name,
                 }),
             });
@@ -1090,6 +1127,7 @@ function getSelectedFiles() {
             tome: tome,
             title: title,
             index: idx,
+            source_dir: filesData[idx].source_dir || "",
         });
     });
     return selected;
@@ -1154,8 +1192,6 @@ async function doOrganize(force = false) {
     const selected = getSelectedFiles();
     const name = seriesName.value.trim();
     const dest = destination.value;
-    const source = appConfig.source_dir;
-
     if (!name || !dest || selected.length === 0) return;
 
     btnOrganize.disabled = true;
@@ -1168,12 +1204,13 @@ async function doOrganize(force = false) {
             body: JSON.stringify({
                 series_name: name,
                 destination: dest,
-                source_dir: source,
+                source_dir: selected[0].source_dir || (appConfig.sources && appConfig.sources[0]) || "",
                 force: force,
                 files: selected.map((f) => ({
                     source: f.source,
                     tome: f.tome,
                     title: f.title,
+                    source_dir: f.source_dir,
                 })),
             }),
         });
@@ -1272,6 +1309,7 @@ btnOrganizeMatched.addEventListener("click", async () => {
         series_name: f.series_match.name,
         destination: f.series_match.destination,
         tome: f.tome,
+        source_dir: f.source_dir || "",
     }));
 
     try {
@@ -1279,7 +1317,7 @@ btnOrganizeMatched.addEventListener("click", async () => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                source_dir: appConfig.source_dir,
+                source_dir: (appConfig.sources && appConfig.sources[0]) || "",
                 items,
             }),
         });
@@ -2060,7 +2098,7 @@ function renderTriageFile() {
     const thumbContainer = document.getElementById("triage-thumb-container");
     if (thumbContainer) {
         if (appConfig.thumbnails_enabled !== false) {
-            const thumbUrl = `/api/thumbnail/${encodeURIComponent(f.name)}`;
+            const thumbUrl = `/api/thumbnail/${encodeURIComponent(f.name)}${f.source_dir ? "?source=" + encodeURIComponent(f.source_dir) : ""}`;
             thumbContainer.innerHTML = `<img class="triage-thumb" src="${thumbUrl}" alt="">`;
         } else {
             thumbContainer.innerHTML = "";
@@ -2148,9 +2186,9 @@ async function triageOrganize() {
             body: JSON.stringify({
                 series_name: series,
                 destination: dest,
-                source_dir: appConfig.source_dir,
+                source_dir: f.source_dir || (appConfig.sources && appConfig.sources[0]) || "",
                 force: true,
-                files: [{ source: f.name, tome, title }],
+                files: [{ source: f.name, tome, title, source_dir: f.source_dir || "" }],
             }),
         });
         if (!res.ok) throw new Error(res.status);
@@ -2193,7 +2231,7 @@ async function triageDelete() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                source_dir: appConfig.source_dir,
+                source_dir: f.source_dir || (appConfig.sources && appConfig.sources[0]) || "",
                 filename: f.name,
             }),
         });
@@ -2524,11 +2562,13 @@ function renderTrashTable() {
         return;
     }
 
+    const multiSource = appConfig.sources && appConfig.sources.length > 1;
     trashTbody.innerHTML = trashData.map((f, i) => {
         const ts = f.deleted_at.replace("T", " ");
+        const srcLabel = multiSource && f.source_label ? ` <span class="source-label">${escHtml(f.source_label)}</span>` : "";
         return `<tr class="trash-row">
             <td class="col-check"><input type="checkbox" class="trash-check" data-index="${i}"></td>
-            <td class="col-trash-name"><span class="file-name">${escHtml(f.name)}</span></td>
+            <td class="col-trash-name"><span class="file-name">${escHtml(f.name)}</span>${srcLabel}</td>
             <td>${f.size_human}</td>
             <td class="col-trash-date">${escHtml(ts)}</td>
             <td class="col-trash-actions">
@@ -2572,7 +2612,7 @@ trashTbody.addEventListener("click", async (e) => {
             const res = await fetch("/api/trash/restore", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ filenames: [file.name] }),
+                body: JSON.stringify({ items: [{ name: file.name, source_dir: file.source_dir || "" }] }),
             });
             const data = await res.json();
             if (data.results[0]?.success) {
@@ -2597,7 +2637,7 @@ trashTbody.addEventListener("click", async (e) => {
             const res = await fetch("/api/trash/purge", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ filenames: [file.name] }),
+                body: JSON.stringify({ items: [{ name: file.name, source_dir: file.source_dir || "" }] }),
             });
             const data = await res.json();
             if (data.success) {
@@ -2612,15 +2652,18 @@ trashTbody.addEventListener("click", async (e) => {
 
 btnRestoreSelected.addEventListener("click", async () => {
     const checked = Array.from(trashTbody.querySelectorAll(".trash-check:checked"));
-    const filenames = checked.map((c) => trashData[parseInt(c.dataset.index)].name);
-    if (filenames.length === 0) return;
+    const items = checked.map((c) => {
+        const f = trashData[parseInt(c.dataset.index)];
+        return { name: f.name, source_dir: f.source_dir || "" };
+    });
+    if (items.length === 0) return;
 
     btnRestoreSelected.disabled = true;
     try {
         const res = await fetch("/api/trash/restore", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ filenames }),
+            body: JSON.stringify({ items }),
         });
         const data = await res.json();
         const successes = data.results.filter((r) => r.success);
@@ -2636,16 +2679,19 @@ btnRestoreSelected.addEventListener("click", async () => {
 
 btnDeleteSelected.addEventListener("click", async () => {
     const checked = Array.from(trashTbody.querySelectorAll(".trash-check:checked"));
-    const filenames = checked.map((c) => trashData[parseInt(c.dataset.index)].name);
-    if (filenames.length === 0) return;
-    if (!confirm(t("trash.confirm_delete_n", { count: filenames.length }))) return;
+    const items = checked.map((c) => {
+        const f = trashData[parseInt(c.dataset.index)];
+        return { name: f.name, source_dir: f.source_dir || "" };
+    });
+    if (items.length === 0) return;
+    if (!confirm(t("trash.confirm_delete_n", { count: items.length }))) return;
 
     btnDeleteSelected.disabled = true;
     try {
         const res = await fetch("/api/trash/purge", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ filenames }),
+            body: JSON.stringify({ items }),
         });
         const data = await res.json();
         if (data.success) {
@@ -2664,7 +2710,7 @@ btnPurgeTrash.addEventListener("click", async () => {
         const res = await fetch("/api/trash/purge", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ filenames: [] }),
+            body: JSON.stringify({ items: [] }),
         });
         const data = await res.json();
         if (data.success) {
